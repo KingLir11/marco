@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,11 +26,11 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
+					DEFAULT: '#385E40', // Dark olive green
 					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
+					DEFAULT: '#79A9CE', // Sky blue
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
 				destructive: {
@@ -41,7 +42,7 @@ export default {
 					foreground: 'hsl(var(--muted-foreground))'
 				},
 				accent: {
-					DEFAULT: 'hsl(var(--accent))',
+					DEFAULT: '#A48054', // Earth brown
 					foreground: 'hsl(var(--accent-foreground))'
 				},
 				popover: {
@@ -63,6 +64,10 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			fontFamily: {
+                'playfair': ['"Playfair Display"', 'serif'],
+                'sans': ['Inter', 'sans-serif'],
+            },
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -84,12 +89,20 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'cloud-move': {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(100%)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'cloud-move': 'cloud-move 20s linear infinite'
+			},
+            backgroundImage: {
+                'hero-pattern': "url('/background-mountains.svg')",
+            }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

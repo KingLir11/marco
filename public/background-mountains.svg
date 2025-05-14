@@ -1,0 +1,33 @@
+
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sky background -->
+  <rect width="1600" height="900" fill="#7FA99C"/>
+  
+  <!-- Background mountains -->
+  <path d="M0,900 L1600,900 L1600,400 L1400,450 L1200,350 L1000,450 L800,300 L600,450 L400,350 L200,400 L0,350 Z" fill="#5F7B6E"/>
+  
+  <!-- Middle mountains -->
+  <path d="M0,900 L1600,900 L1600,500 L1400,550 L1200,500 L1000,600 L800,500 L600,650 L400,550 L200,600 L0,550 Z" fill="#748D7E"/>
+  
+  <!-- Water/river -->
+  <path d="M600,900 C650,870 700,850 800,850 S950,870 1000,900 Z" fill="#A2C7D8" opacity="0.8"/>
+  
+  <!-- Foreground terrain -->
+  <path d="M0,900 L1600,900 L1600,700 L1400,750 L1200,720 L1000,780 L800,750 L600,800 L400,750 L200,780 L0,750 Z" fill="#A48054"/>
+  
+  <!-- Clouds -->
+  <ellipse cx="300" cy="200" rx="100" ry="60" fill="white" opacity="0.8"/>
+  <ellipse cx="370" cy="180" rx="80" ry="50" fill="white" opacity="0.8"/>
+  <ellipse cx="430" cy="210" rx="70" ry="40" fill="white" opacity="0.8"/>
+  
+  <ellipse cx="1200" cy="150" rx="90" ry="50" fill="white" opacity="0.8"/>
+  <ellipse cx="1270" cy="170" rx="70" ry="40" fill="white" opacity="0.8"/>
+  
+  <!-- Moon -->
+  <circle cx="1400" cy="200" r="80" fill="#FFDC8A"/>
+  
+  <!-- Tree silhouettes -->
+  <path d="M1450,700 L1450,650 L1430,670 L1450,650 L1470,670 L1450,650 L1450,600" stroke="#2C4735" stroke-width="5"/>
+  <path d="M1500,720 L1500,670 L1480,690 L1500,670 L1520,690 L1500,670 L1500,620" stroke="#2C4735" stroke-width="5"/>
+  <path d="M1400,730 L1400,680 L1380,700 L1400,680 L1420,700 L1400,680 L1400,630" stroke="#2C4735" stroke-width="5"/>
+</svg>
