@@ -12,6 +12,9 @@ import { StyleField } from "@/components/trip-form/StyleField";
 import { BudgetField } from "@/components/trip-form/BudgetField";
 import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
+import { toast } from "@/components/ui/sonner";
+
+const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
 const TripPlanForm = () => {
   const navigate = useNavigate();
@@ -27,16 +30,41 @@ const TripPlanForm = () => {
     },
   });
 
-  function onSubmit(data: TripFormData) {
+  async function onSubmit(data: TripFormData) {
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // In a real app, you'd save this data to state/context or API
-      console.log("Form data:", data);
+    try {
+      // Format dates to ISO strings for the API
+      const formattedData = {
+        ...data,
+        startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        endDate: data.endDate.toISOString().split('T')[0],
+        budget: data.budget[0], // Send the single budget value instead of array
+      };
+      
+      console.log("Sending form data to webhook:", formattedData);
+      
+      // Send data to the webhook
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedData),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to send trip data");
+      }
+      
+      toast.success("Trip details submitted successfully!");
       navigate("/result");
+    } catch (error) {
+      console.error("Error submitting trip data:", error);
+      toast.error("Failed to submit trip data. Please try again.");
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   }
 
   return (
