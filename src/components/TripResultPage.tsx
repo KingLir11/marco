@@ -35,7 +35,7 @@ const TripResultPage = () => {
   return (
     <div className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
+        <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
           <header className="mb-8">
             <h1 className="text-4xl font-bold font-playfair mb-2">{tripData.destination}</h1>
             <p className="text-gray-600">{tripData.dateRange}</p>
