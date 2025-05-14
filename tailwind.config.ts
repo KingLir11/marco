@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -101,7 +100,7 @@ export default {
 				'cloud-move': 'cloud-move 20s linear infinite'
 			},
             backgroundImage: {
-                'hero-pattern': "url('/background-mountains.svg')",
+                // Removed hero-pattern since we're now using the uploaded image directly
             }
 		}
 	},

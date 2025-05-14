@@ -6,7 +6,10 @@ import { Link } from "react-router-dom";
 const Hero = () => {
   return (
     <section className="relative w-full min-h-screen pt-20 pb-12 md:py-24 lg:py-32 xl:py-48 overflow-hidden">
-      <div className="absolute inset-0 bg-hero-pattern bg-cover bg-center z-0" />
+      <div className="absolute inset-0 bg-cover bg-center z-0" 
+           style={{ backgroundImage: "url('/lovable-uploads/8093b74b-940d-48d1-8357-22d27c1caaf7.png')" }} />
+      
+      <div className="absolute inset-0 bg-black/20 z-0" /> {/* Adding a slight overlay for better text visibility */}
       
       <div className="container relative z-10 px-4 md:px-6 mx-auto">
         <div className="flex flex-col items-center space-y-6 text-center">
