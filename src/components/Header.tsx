@@ -20,7 +20,7 @@ const Header = () => {
             Home
           </Link>
           <Link to="/plan" className="text-sm font-medium text-white hover:text-gray-200 transition-colors">
-            Plan Trip
+            Plan My Trip
           </Link>
           <Link to="/my-trips" className="text-sm font-medium text-white hover:text-gray-200 transition-colors">
             My Trips

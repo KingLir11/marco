@@ -32,8 +32,14 @@ const MyTripsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#7FA99C] to-[#6c9589] py-20 px-4">
-      <div className="container mx-auto max-w-5xl">
+    <div 
+      className="min-h-screen py-20 px-4 relative bg-cover bg-center"
+      style={{ backgroundImage: "url('/lovable-uploads/76fb0b52-5610-43f9-b2cc-5b20a0978557.png')" }}
+    >
+      {/* Semi-transparent overlay */}
+      <div className="absolute inset-0 bg-black/10"></div>
+      
+      <div className="container mx-auto max-w-5xl relative z-10">
         <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8">
           <header className="mb-8">
             <h1 className="text-4xl font-bold font-playfair mb-2">My Trips</h1>
