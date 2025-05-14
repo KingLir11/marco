@@ -9,7 +9,9 @@ const Header = () => {
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center">
           <Link to="/" className="flex items-center">
-            <span className="text-xl font-bold font-playfair text-white">Marco</span>
+            <span className="text-2xl font-bold font-playfair text-white drop-shadow-md bg-primary/30 px-3 py-1 rounded-md backdrop-blur-sm">
+              Marco
+            </span>
           </Link>
         </div>
         
@@ -26,7 +28,11 @@ const Header = () => {
         </nav>
         
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex text-white border-white hover:bg-white/20">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="hidden sm:inline-flex text-white border-white hover:bg-white/20 bg-white/10"
+          >
             Login
           </Button>
           <Button size="sm" className="bg-primary hover:bg-primary/90">Get Started</Button>

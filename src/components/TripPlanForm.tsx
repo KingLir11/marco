@@ -59,8 +59,8 @@ const TripPlanForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#7FA99C] to-[#6c9589] p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-2xl bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8">
+      <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 relative z-10">
         <h1 className="text-3xl font-bold font-playfair text-center mb-8">Plan Your Trip</h1>
         
         {loading ? (
