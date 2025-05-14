@@ -15,6 +15,7 @@ export const tripFormSchema = z.object({
   budget: z.array(z.number()).refine((value) => value.length === 1, {
     message: "Budget is required",
   }),
+  extraRequests: z.string().optional(),
 });
 
 export type TripFormData = z.infer<typeof tripFormSchema>;

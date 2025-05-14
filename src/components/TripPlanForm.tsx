@@ -10,6 +10,7 @@ import { DestinationField } from "@/components/trip-form/DestinationField";
 import { DateField } from "@/components/trip-form/DateField";
 import { StyleField } from "@/components/trip-form/StyleField";
 import { BudgetField } from "@/components/trip-form/BudgetField";
+import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 
 const TripPlanForm = () => {
@@ -22,6 +23,7 @@ const TripPlanForm = () => {
       destination: "",
       style: "nature",
       budget: [50],
+      extraRequests: "",
     },
   });
 
@@ -70,6 +72,7 @@ const TripPlanForm = () => {
               
               <StyleField control={form.control} />
               <BudgetField control={form.control} />
+              <ExtraRequestsField control={form.control} />
               
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-lg py-6">
                 Create My Plan
