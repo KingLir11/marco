@@ -33,16 +33,16 @@ const TripResultPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#7FA99C] to-[#6c9589] py-20 px-4">
+    <div className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
           <header className="mb-8">
             <h1 className="text-4xl font-bold font-playfair mb-2">{tripData.destination}</h1>
             <p className="text-gray-600">{tripData.dateRange}</p>
           </header>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-            <Card>
+            <Card className="border border-white/20 shadow-lg">
               <CardHeader className="bg-primary/10 border-b">
                 <CardTitle className="text-primary">Main Plan</CardTitle>
                 <CardDescription>Optimized for the forecast weather</CardDescription>
@@ -61,7 +61,7 @@ const TripResultPage = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="border border-white/20 shadow-lg">
               <CardHeader className="bg-secondary/10 border-b">
                 <CardTitle className="text-secondary">Alternative Plan</CardTitle>
                 <CardDescription>In case of weather changes</CardDescription>
@@ -85,7 +85,7 @@ const TripResultPage = () => {
             <h2 className="text-2xl font-playfair font-semibold mb-4">Recommended Equipment</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
               {tripData.equipment.map((item, index) => (
-                <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg">
+                <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm">
                   <div className="bg-primary/10 p-2 rounded-full mb-2">
                     {item.icon}
                   </div>
