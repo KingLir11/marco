@@ -7,7 +7,7 @@ import ResultPageLayout from "@/components/trip-result/ResultPageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useRealtimeImages } from "@/hooks/use-realtime-images";
 import { Button } from "@/components/ui/button";
-import { ReloadIcon } from "@radix-ui/react-icons";
+import { RefreshCw } from "lucide-react"; // Updated import to use lucide-react
 import { Link } from "react-router-dom";
 
 const ResultPage = () => {
@@ -67,7 +67,7 @@ const ResultPage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button onClick={handleRetry} variant="outline" className="gap-2">
-                <ReloadIcon className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" /> {/* Updated icon component */}
                 Retry Loading
               </Button>
               <Button asChild>
