@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Umbrella, Sun, Wind, Mountain, Map, Route, Compass, Loader2 } from "lucide-react";
+import { Umbrella, Sun, Wind, Mountain, Map, Route, Compass, Loader2, Backpack, List } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getLatestTripImagePlan } from "@/services/tripImageService";
 import { toast } from "@/components/ui/sonner";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 const TripResultPage = () => {
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ const TripResultPage = () => {
 
   return (
     <div className="py-20 px-4">
-      <div className="container mx-auto max-w-5xl">
+      <div className="container mx-auto max-w-6xl">
         <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
           {loading ? (
             <div className="flex flex-col justify-center items-center py-20 space-y-4">
@@ -93,6 +95,19 @@ const TripResultPage = () => {
                 <h1 className="text-4xl font-bold font-playfair mb-2">{tripData.destination}</h1>
                 <p className="text-gray-600">{tripData.dateRange}</p>
               </header>
+              
+              {/* Featured image section */}
+              {imageURL && (
+                <div className="mb-10 border rounded-lg overflow-hidden shadow-lg">
+                  <AspectRatio ratio={16/9}>
+                    <img 
+                      src={imageURL} 
+                      alt={`${tripData.destination} preview`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </AspectRatio>
+                </div>
+              )}
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
                 <Card className="border border-white/20 shadow-lg">
@@ -142,20 +157,39 @@ const TripResultPage = () => {
                 </Card>
               </div>
               
+              {/* Dedicated packing list section */}
               {tripData.equipment.length > 0 && (
-                <div className="mb-10">
-                  <h2 className="text-2xl font-playfair font-semibold mb-4">Recommended Equipment</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                    {tripData.equipment.map((item, index) => (
-                      <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm">
-                        <div className="bg-primary/10 p-2 rounded-full mb-2">
-                          {item.icon}
-                        </div>
-                        <span className="text-sm text-center">{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <Card className="mb-10 border border-white/20 shadow-lg">
+                  <CardHeader className="bg-green-50 border-b">
+                    <div className="flex items-center">
+                      <Backpack className="h-6 w-6 text-green-600 mr-2" />
+                      <CardTitle className="text-green-600">Packing List</CardTitle>
+                    </div>
+                    <CardDescription>Recommended equipment for your trip</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Item</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tripData.equipment.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div className="bg-primary/10 p-2 rounded-full">
+                                {item.icon}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
               )}
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

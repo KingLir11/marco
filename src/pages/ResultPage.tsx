@@ -80,7 +80,7 @@ const ResultPage = () => {
               alt="Trip destination" 
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/30" /> {/* Semi-transparent overlay */}
+            <div className="absolute inset-0 bg-black/50" /> {/* Darker overlay for better readability */}
           </AspectRatio>
         </div>
       ) : (
