@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { TripFormData } from "@/lib/schemas/tripPlanSchema";
 import { useRealtimeImages, ImagePlanData } from "./use-realtime-images";
+import { generateSupabaseId } from "@/lib/utils";
 
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
@@ -104,16 +105,20 @@ export function useTripFormSubmission() {
     setSubmittedAt(currentTime);
     
     try {
+      // Generate a random ID suitable for Supabase int8 type
+      const supabaseId = generateSupabaseId();
+      
       // Format dates to ISO strings for the API
       const formattedData = {
         ...data,
+        id: supabaseId, // Include the generated ID in the webhook payload
         startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
         endDate: data.endDate.toISOString().split('T')[0],
         budget: data.budget[0], // Send the single budget value instead of array
         submittedAt: currentTime.toISOString() // Add submission timestamp
       };
       
-      console.log("Sending form data to webhook:", formattedData);
+      console.log("Sending form data to webhook with ID:", supabaseId);
       
       // Send data to the webhook
       const response = await fetch(WEBHOOK_URL, {
