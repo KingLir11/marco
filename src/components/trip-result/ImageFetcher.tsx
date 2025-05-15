@@ -24,9 +24,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
     toast.success("New trip plan received!");
     
     // Update the background image if a new one is available
-    if (data && data.ImageURL) {
-      console.log("ResultPage: Updating background image to:", data.ImageURL);
-      onImageLoad(data.ImageURL);
+    if (data && data["Image URL"]) {
+      console.log("ResultPage: Updating background image to:", data["Image URL"]);
+      onImageLoad(data["Image URL"]);
       // Trigger refresh
       onRefresh();
       // Clear any previous errors
@@ -54,8 +54,8 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         await debugLogAllRows();
         
         const { data, error } = await supabase
-          .from('Images-Plan')
-          .select('ImageURL, Response')
+          .from('URL+Response')
+          .select('"Image URL", Response')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -68,9 +68,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         
         console.log("ResultPage: Fetched latest data:", data);
         
-        if (data?.ImageURL) {
-          console.log("ResultPage: Setting background image:", data.ImageURL);
-          onImageLoad(data.ImageURL);
+        if (data?.["Image URL"]) {
+          console.log("ResultPage: Setting background image:", data["Image URL"]);
+          onImageLoad(data["Image URL"]);
           onRefresh();
         } else {
           console.log("ResultPage: No trip plan found or no image URL in the data");
@@ -81,11 +81,11 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
             
             // Check if there are ANY rows in the table
             const { count } = await supabase
-              .from('Images-Plan')
+              .from('URL+Response')
               .select('*', { count: 'exact', head: true });
               
             if (count === 0) {
-              console.log("ResultPage: No rows in Images-Plan table, redirecting to plan page");
+              console.log("ResultPage: No rows in URL+Response table, redirecting to plan page");
               toast.error("No trip plan found. Please create a new trip plan.");
               navigate("/plan");
             }

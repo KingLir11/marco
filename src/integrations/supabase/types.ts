@@ -9,20 +9,23 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      "Images-Plan": {
+      "URL+Response": {
         Row: {
           created_at: string
-          ImageURL: string | null
+          id: number
+          "Image URL": string | null
           Response: string | null
         }
         Insert: {
           created_at?: string
-          ImageURL?: string | null
+          id?: number
+          "Image URL"?: string | null
           Response?: string | null
         }
         Update: {
           created_at?: string
-          ImageURL?: string | null
+          id?: number
+          "Image URL"?: string | null
           Response?: string | null
         }
         Relationships: []

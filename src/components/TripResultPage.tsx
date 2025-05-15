@@ -30,7 +30,7 @@ const TripResultPage = () => {
         const latestPlan = await getLatestTripImagePlan();
         
         if (latestPlan) {
-          setImageURL(latestPlan.ImageURL);
+          setImageURL(latestPlan["Image URL"]);
           
           // Parse AI response if available
           if (latestPlan.Response) {

@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
 // Channel name used consistently across components
-export const CHANNEL_NAME = 'public:Images-Plan';
+export const CHANNEL_NAME = 'public:URL+Response';
 
 export interface ImagePlanData {
-  ImageURL?: string | null;
+  "Image URL"?: string | null;
   Response?: string | null;
   created_at?: string;
 }
@@ -18,7 +18,7 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
   
   // Set up the Supabase realtime connection
   useEffect(() => {
-    console.log("Setting up Realtime listener for 'Images-Plan' table");
+    console.log("Setting up Realtime listener for 'URL+Response' table");
     
     // Create channel only once
     const channel = supabase
@@ -28,7 +28,7 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'Images-Plan'
+          table: 'URL+Response'
         },
         (payload) => {
           console.log("New trip plan received!", payload);

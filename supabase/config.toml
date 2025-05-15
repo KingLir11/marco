@@ -5,4 +5,4 @@ project_id = "sabndgaxyzczmisusouv"
 enabled = true
 
 [realtime.tables]
-"public.Images-Plan" = true
+"public.URL+Response" = true

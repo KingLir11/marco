@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface TripImagePlan {
   created_at: string;
-  ImageURL: string | null;
+  "Image URL": string | null;
   Response: string | null;
 }
 
@@ -11,7 +11,7 @@ export const getTripImagePlans = async (): Promise<TripImagePlan[]> => {
   console.log("Fetching all trip image plans");
   try {
     const { data, error } = await supabase
-      .from('Images-Plan')
+      .from('URL+Response')
       .select('*')
       .order('created_at', { ascending: false });
     
@@ -32,7 +32,7 @@ export const getLatestTripImagePlan = async (): Promise<TripImagePlan | null> =>
   console.log("Fetching latest trip image plan");
   try {
     const { data, error } = await supabase
-      .from('Images-Plan')
+      .from('URL+Response')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -56,7 +56,7 @@ export const checkIfTripPlansExist = async (): Promise<boolean> => {
   console.log("Checking if any trip plans exist");
   try {
     const { count, error } = await supabase
-      .from('Images-Plan')
+      .from('URL+Response')
       .select('*', { count: 'exact', head: true });
     
     if (error) {
@@ -75,10 +75,10 @@ export const checkIfTripPlansExist = async (): Promise<boolean> => {
 
 // Debug helper to log all rows in the table
 export const debugLogAllRows = async () => {
-  console.log("=== DEBUG: Logging all rows in Images-Plan table ===");
+  console.log("=== DEBUG: Logging all rows in URL+Response table ===");
   try {
     const { data, error } = await supabase
-      .from('Images-Plan')
+      .from('URL+Response')
       .select('*');
     
     if (error) {
@@ -86,13 +86,13 @@ export const debugLogAllRows = async () => {
       return;
     }
     
-    console.log(`Found ${data.length} rows in Images-Plan table`);
+    console.log(`Found ${data.length} rows in URL+Response table`);
     data.forEach((row, index) => {
       console.log(`Row ${index + 1}:`, {
         created_at: row.created_at,
-        hasImageURL: !!row.ImageURL,
+        hasImageURL: !!row["Image URL"],
         hasResponse: !!row.Response,
-        imageURLPreview: row.ImageURL ? row.ImageURL.substring(0, 50) + '...' : null
+        imageURLPreview: row["Image URL"] ? row["Image URL"].substring(0, 50) + '...' : null
       });
     });
     console.log("=== END DEBUG LOG ===");
