@@ -1,1 +1,5 @@
+
 project_id = "sabndgaxyzczmisusouv"
+
+[realtime]
+enabled = true

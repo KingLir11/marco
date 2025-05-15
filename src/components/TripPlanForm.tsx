@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
+// Use consistent channel name across components
+const CHANNEL_NAME = 'public:Images-Plan';
 
 const TripPlanForm = () => {
   const navigate = useNavigate();
@@ -37,11 +39,26 @@ const TripPlanForm = () => {
   useEffect(() => {
     if (!submittedAt) return;
 
-    // Calculate time threshold (1 minute before current submission)
-    const timeThreshold = new Date(submittedAt.getTime() - 60000);
+    console.log("Setting up Realtime listener for new trip plan data...");
+
+    // Enable Realtime for Images-Plan table
+    const enableRealtime = async () => {
+      try {
+        await supabase.rpc('supabase_realtime', {
+          table: 'Images-Plan',
+          action: 'enable'
+        });
+        console.log("Realtime enabled for Images-Plan table");
+      } catch (error) {
+        console.error("Error enabling Realtime:", error);
+        // Continue anyway as the table might already be enabled
+      }
+    };
+
+    enableRealtime();
     
     const channel = supabase
-      .channel('waiting-for-trip-plan')
+      .channel(CHANNEL_NAME)
       .on(
         'postgres_changes',
         {
@@ -50,13 +67,20 @@ const TripPlanForm = () => {
           table: 'Images-Plan'
         },
         (payload) => {
-          console.log("New trip plan received!", payload);
+          console.log("New trip plan received in TripPlanForm!", payload);
           toast.success("Your trip plan is ready!");
-          setLoading(false); // Ensure loading state is cleared
-          navigate("/result"); // Navigate to result page
+          setLoading(false);
+          
+          // Add a small delay before navigation to ensure state updates are processed
+          setTimeout(() => {
+            console.log("Navigating to result page...");
+            navigate("/result");
+          }, 500);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Supabase channel status:", status);
+      });
 
     // Set a fallback timeout (2 minutes)
     const timeoutId = setTimeout(() => {
@@ -74,6 +98,7 @@ const TripPlanForm = () => {
     }, 120000);
 
     return () => {
+      console.log("Cleaning up Supabase channel...");
       supabase.removeChannel(channel);
       clearTimeout(timeoutId);
     };
@@ -81,7 +106,8 @@ const TripPlanForm = () => {
 
   async function onSubmit(data: TripFormData) {
     setLoading(true);
-    setSubmittedAt(new Date());
+    const currentTime = new Date();
+    setSubmittedAt(currentTime);
     
     try {
       // Format dates to ISO strings for the API
@@ -90,6 +116,7 @@ const TripPlanForm = () => {
         startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
         endDate: data.endDate.toISOString().split('T')[0],
         budget: data.budget[0], // Send the single budget value instead of array
+        submittedAt: currentTime.toISOString() // Add submission timestamp
       };
       
       console.log("Sending form data to webhook:", formattedData);
@@ -107,8 +134,17 @@ const TripPlanForm = () => {
         throw new Error("Failed to send trip data");
       }
       
+      console.log("Webhook response status:", response.status);
       toast.success("Trip details submitted successfully! Creating your plan...");
-      // We don't navigate immediately, we wait for Supabase update
+      
+      // In case we don't get a Supabase event, force navigation after 30 seconds
+      setTimeout(() => {
+        if (loading) {
+          console.log("Forcing navigation to result page after timeout");
+          setLoading(false);
+          navigate("/result");
+        }
+      }, 30000);
     } catch (error) {
       console.error("Error submitting trip data:", error);
       toast.error("Failed to submit trip data. Please try again.");
