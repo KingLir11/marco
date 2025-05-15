@@ -12,7 +12,7 @@ export const getTripImagePlans = async (): Promise<TripImagePlan[]> => {
   try {
     const { data, error } = await supabase
       .from('URL+Response')
-      .select('*')
+      .select('created_at, "Image URL", Response')
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -33,7 +33,7 @@ export const getLatestTripImagePlan = async (): Promise<TripImagePlan | null> =>
   try {
     const { data, error } = await supabase
       .from('URL+Response')
-      .select('*')
+      .select('created_at, "Image URL", Response')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -79,7 +79,7 @@ export const debugLogAllRows = async () => {
   try {
     const { data, error } = await supabase
       .from('URL+Response')
-      .select('*');
+      .select('created_at, "Image URL", Response');
     
     if (error) {
       console.error('DEBUG ERROR: Failed to fetch records:', error);

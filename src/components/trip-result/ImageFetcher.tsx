@@ -55,7 +55,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         
         const { data, error } = await supabase
           .from('URL+Response')
-          .select('"Image URL", Response')
+          .select('created_at, "Image URL", Response')
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
