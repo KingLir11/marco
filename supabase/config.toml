@@ -6,4 +6,3 @@ enabled = true
 
 [realtime.tables]
 "public.Images-Plan" = true
-

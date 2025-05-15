@@ -72,3 +72,31 @@ export const checkIfTripPlansExist = async (): Promise<boolean> => {
     throw error;
   }
 };
+
+// Debug helper to log all rows in the table
+export const debugLogAllRows = async () => {
+  console.log("=== DEBUG: Logging all rows in Images-Plan table ===");
+  try {
+    const { data, error } = await supabase
+      .from('Images-Plan')
+      .select('*');
+    
+    if (error) {
+      console.error('DEBUG ERROR: Failed to fetch records:', error);
+      return;
+    }
+    
+    console.log(`Found ${data.length} rows in Images-Plan table`);
+    data.forEach((row, index) => {
+      console.log(`Row ${index + 1}:`, {
+        created_at: row.created_at,
+        hasImageURL: !!row.ImageURL,
+        hasResponse: !!row.Response,
+        imageURLPreview: row.ImageURL ? row.ImageURL.substring(0, 50) + '...' : null
+      });
+    });
+    console.log("=== END DEBUG LOG ===");
+  } catch (err) {
+    console.error("DEBUG ERROR: Exception during debug logging:", err);
+  }
+};

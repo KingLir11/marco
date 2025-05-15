@@ -5,6 +5,7 @@ import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeImages, ImagePlanData } from "@/hooks/use-realtime-images";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { debugLogAllRows } from "@/services/tripImageService";
 
 interface ImageFetcherProps {
   onImageLoad: (imageURL: string) => void;
@@ -49,6 +50,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         setLoading(true);
         setHasAttemptedFetch(true);
         
+        // Debug - log all rows in the table
+        await debugLogAllRows();
+        
         const { data, error } = await supabase
           .from('Images-Plan')
           .select('ImageURL, Response')
@@ -62,21 +66,29 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
           return;
         }
         
-        console.log("ResultPage: Fetched data:", data);
+        console.log("ResultPage: Fetched latest data:", data);
         
         if (data?.ImageURL) {
           console.log("ResultPage: Setting background image:", data.ImageURL);
           onImageLoad(data.ImageURL);
           onRefresh();
         } else {
-          console.log("ResultPage: No trip plan found, will wait for realtime updates");
-          setError("No trip plan found yet. Waiting for updates...");
-          
-          // Only redirect if we're sure there's no data
-          if (!data) {
-            console.log("ResultPage: No trip plan found, redirecting to plan page");
-            toast.error("No trip plan found. Please create a new trip plan.");
-            navigate("/plan");
+          console.log("ResultPage: No trip plan found or no image URL in the data");
+          if (data) {
+            setError("Trip plan found but it doesn't have an image URL. Waiting for updates...");
+          } else {
+            setError("No trip plan found yet. Waiting for updates...");
+            
+            // Check if there are ANY rows in the table
+            const { count } = await supabase
+              .from('Images-Plan')
+              .select('*', { count: 'exact', head: true });
+              
+            if (count === 0) {
+              console.log("ResultPage: No rows in Images-Plan table, redirecting to plan page");
+              toast.error("No trip plan found. Please create a new trip plan.");
+              navigate("/plan");
+            }
           }
         }
         

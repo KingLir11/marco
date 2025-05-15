@@ -6,11 +6,15 @@ import ImageFetcher from "@/components/trip-result/ImageFetcher";
 import ResultPageLayout from "@/components/trip-result/ResultPageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useRealtimeImages } from "@/hooks/use-realtime-images";
+import { Button } from "@/components/ui/button";
+import { ReloadIcon } from "@radix-ui/react-icons";
+import { Link } from "react-router-dom";
 
 const ResultPage = () => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0); // Key to force component refresh
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();
@@ -32,6 +36,14 @@ const ResultPage = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
+  // Manual retry function
+  const handleRetry = () => {
+    console.log("ResultPage: Manual retry requested");
+    setRetryCount(prev => prev + 1);
+    setRefreshKey(prevKey => prevKey + 1);
+    setError(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Background component */}
@@ -39,6 +51,7 @@ const ResultPage = () => {
       
       {/* Image fetcher component */}
       <ImageFetcher 
+        key={`image-fetcher-${retryCount}`}
         onImageLoad={handleImageLoad} 
         onRefresh={handleRefresh} 
       />
@@ -46,10 +59,22 @@ const ResultPage = () => {
       {/* Page layout with content */}
       <ResultPageLayout>
         {error ? (
-          <Alert variant="destructive" className="max-w-md mx-auto mt-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="space-y-6 text-center py-20">
+            <Alert variant="destructive" className="max-w-md mx-auto">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button onClick={handleRetry} variant="outline" className="gap-2">
+                <ReloadIcon className="h-4 w-4" />
+                Retry Loading
+              </Button>
+              <Button asChild>
+                <Link to="/plan">Create New Trip Plan</Link>
+              </Button>
+            </div>
+          </div>
         ) : (
           <TripResultPage key={refreshKey} />
         )}
