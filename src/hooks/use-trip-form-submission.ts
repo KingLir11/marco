@@ -1,0 +1,118 @@
+
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/sonner";
+import { TripFormData } from "@/lib/schemas/tripPlanSchema";
+import { useRealtimeImages, ImagePlanData } from "./use-realtime-images";
+
+const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
+
+export function useTripFormSubmission() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+
+  // Handle new images from Supabase Realtime
+  const handleNewImage = (data: ImagePlanData) => {
+    console.log("New trip plan received in TripPlanForm!", data);
+    toast.success("Your trip plan is ready!");
+    setLoading(false);
+    
+    // Add a small delay before navigation to ensure state updates are processed
+    setTimeout(() => {
+      console.log("Navigating to result page...");
+      navigate("/result");
+    }, 500);
+  };
+  
+  // Only set up the realtime listener if we've submitted the form
+  const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
+  
+  useEffect(() => {
+    if (submittedAt && connected) {
+      console.log("Connected to Supabase Realtime and waiting for new data...");
+    }
+  }, [submittedAt, connected]);
+
+  // Set a fallback timeout in case we don't receive a webhook response
+  useEffect(() => {
+    if (!submittedAt || !loading) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        toast.info("Still working on your trip plan. Please wait a moment...");
+        
+        // Set another timeout for another 2 minutes
+        setTimeout(() => {
+          if (loading) {
+            setLoading(false);
+            toast.error("It's taking longer than expected. Please try again.");
+          }
+        }, 120000);
+      }
+    }, 120000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [submittedAt, loading]);
+
+  // Force navigation after 30 seconds if we haven't received a response
+  useEffect(() => {
+    if (!submittedAt || !loading) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("Forcing navigation to result page after timeout");
+        setLoading(false);
+        navigate("/result");
+      }
+    }, 30000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [submittedAt, loading, navigate]);
+
+  const onSubmit = async (data: TripFormData) => {
+    setLoading(true);
+    const currentTime = new Date();
+    setSubmittedAt(currentTime);
+    
+    try {
+      // Format dates to ISO strings for the API
+      const formattedData = {
+        ...data,
+        startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        endDate: data.endDate.toISOString().split('T')[0],
+        budget: data.budget[0], // Send the single budget value instead of array
+        submittedAt: currentTime.toISOString() // Add submission timestamp
+      };
+      
+      console.log("Sending form data to webhook:", formattedData);
+      
+      // Send data to the webhook
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formattedData),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to send trip data");
+      }
+      
+      console.log("Webhook response status:", response.status);
+      toast.success("Trip details submitted successfully! Creating your plan...");
+    } catch (error) {
+      console.error("Error submitting trip data:", error);
+      toast.error("Failed to submit trip data. Please try again.");
+      setLoading(false);
+      setSubmittedAt(null);
+    }
+  };
+
+  return { loading, onSubmit };
+}
