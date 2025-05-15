@@ -8,15 +8,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useNavigate } from "react-router-dom";
-
-// Use consistent channel name across components
-const CHANNEL_NAME = 'public:Images-Plan';
+import { useRealtimeImages, ImagePlanData } from "@/hooks/use-realtime-images";
 
 const ResultPage = () => {
   const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0); // Key to force component refresh
+  
+  // Handle new images from Supabase Realtime
+  const handleNewImage = (data: ImagePlanData) => {
+    console.log("ResultPage: New trip plan received!", data);
+    toast.success("New trip plan received!");
+    
+    // Update the background image if a new one is available
+    if (data && data.ImageURL) {
+      console.log("ResultPage: Updating background image to:", data.ImageURL);
+      setBackgroundImage(data.ImageURL);
+      // Force the TripResultPage component to reload by causing a re-render
+      setRefreshKey(prevKey => prevKey + 1);
+    }
+  };
+  
+  // Set up the realtime listener
+  useRealtimeImages(handleNewImage);
   
   // Fetch latest image on initial load
   useEffect(() => {
@@ -56,57 +71,6 @@ const ResultPage = () => {
     
     fetchLatestImage();
   }, [navigate, refreshKey]);
-  
-  // Subscribe to new inserts in the Images-Plan table
-  useEffect(() => {
-    console.log("ResultPage: Setting up Realtime listener for 'Images-Plan' table");
-    
-    // Enable Realtime for Images-Plan table
-    const enableRealtime = async () => {
-      try {
-        await supabase.rpc('supabase_realtime', {
-          table: 'Images-Plan',
-          action: 'enable'
-        });
-        console.log("Realtime enabled for Images-Plan table");
-      } catch (error) {
-        console.error("Error enabling Realtime:", error);
-        // Continue anyway as the table might already be enabled
-      }
-    };
-
-    enableRealtime();
-    
-    const channel = supabase
-      .channel(CHANNEL_NAME)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'Images-Plan'
-        },
-        (payload) => {
-          console.log("ResultPage: New trip plan received!", payload);
-          toast.success("New trip plan received!");
-          // Update the background image if a new one is available
-          if (payload.new && payload.new.ImageURL) {
-            console.log("ResultPage: Updating background image to:", payload.new.ImageURL);
-            setBackgroundImage(payload.new.ImageURL);
-          }
-          // Force the TripResultPage component to reload by causing a re-render
-          setRefreshKey(prevKey => prevKey + 1);
-        }
-      )
-      .subscribe((status) => {
-        console.log("ResultPage: Supabase channel status:", status);
-      });
-
-    return () => {
-      console.log("ResultPage: Cleaning up Supabase channel");
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">

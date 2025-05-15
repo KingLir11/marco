@@ -13,76 +13,42 @@ import { BudgetField } from "@/components/trip-form/BudgetField";
 import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 import { toast } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useRealtimeImages, ImagePlanData } from "@/hooks/use-realtime-images";
+import { useState, useEffect } from "react";
 
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
-// Use consistent channel name across components
-const CHANNEL_NAME = 'public:Images-Plan';
 
 const TripPlanForm = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState(false);
-  const [submittedAt, setSubmittedAt] = React.useState<Date | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
 
-  const form = useForm<TripFormData>({
-    resolver: zodResolver(tripFormSchema),
-    defaultValues: {
-      destination: "",
-      style: "nature",
-      budget: [50],
-      extraRequests: "",
-    },
-  });
-
-  // Listen for new Supabase data after form submission
-  useEffect(() => {
-    if (!submittedAt) return;
-
-    console.log("Setting up Realtime listener for new trip plan data...");
-
-    // Enable Realtime for Images-Plan table
-    const enableRealtime = async () => {
-      try {
-        await supabase.rpc('supabase_realtime', {
-          table: 'Images-Plan',
-          action: 'enable'
-        });
-        console.log("Realtime enabled for Images-Plan table");
-      } catch (error) {
-        console.error("Error enabling Realtime:", error);
-        // Continue anyway as the table might already be enabled
-      }
-    };
-
-    enableRealtime();
+  // Handle new images from Supabase Realtime
+  const handleNewImage = (data: ImagePlanData) => {
+    console.log("New trip plan received in TripPlanForm!", data);
+    toast.success("Your trip plan is ready!");
+    setLoading(false);
     
-    const channel = supabase
-      .channel(CHANNEL_NAME)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'Images-Plan'
-        },
-        (payload) => {
-          console.log("New trip plan received in TripPlanForm!", payload);
-          toast.success("Your trip plan is ready!");
-          setLoading(false);
-          
-          // Add a small delay before navigation to ensure state updates are processed
-          setTimeout(() => {
-            console.log("Navigating to result page...");
-            navigate("/result");
-          }, 500);
-        }
-      )
-      .subscribe((status) => {
-        console.log("Supabase channel status:", status);
-      });
+    // Add a small delay before navigation to ensure state updates are processed
+    setTimeout(() => {
+      console.log("Navigating to result page...");
+      navigate("/result");
+    }, 500);
+  };
+  
+  // Only set up the realtime listener if we've submitted the form
+  const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
+  
+  useEffect(() => {
+    if (submittedAt && connected) {
+      console.log("Connected to Supabase Realtime and waiting for new data...");
+    }
+  }, [submittedAt, connected]);
 
-    // Set a fallback timeout (2 minutes)
+  // Set a fallback timeout in case we don't receive a webhook response
+  useEffect(() => {
+    if (!submittedAt || !loading) return;
+    
     const timeoutId = setTimeout(() => {
       if (loading) {
         toast.info("Still working on your trip plan. Please wait a moment...");
@@ -98,11 +64,36 @@ const TripPlanForm = () => {
     }, 120000);
 
     return () => {
-      console.log("Cleaning up Supabase channel...");
-      supabase.removeChannel(channel);
+      clearTimeout(timeoutId);
+    };
+  }, [submittedAt, loading]);
+
+  // Force navigation after 30 seconds if we haven't received a response
+  useEffect(() => {
+    if (!submittedAt || !loading) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log("Forcing navigation to result page after timeout");
+        setLoading(false);
+        navigate("/result");
+      }
+    }, 30000);
+
+    return () => {
       clearTimeout(timeoutId);
     };
   }, [submittedAt, loading, navigate]);
+
+  const form = useForm<TripFormData>({
+    resolver: zodResolver(tripFormSchema),
+    defaultValues: {
+      destination: "",
+      style: "nature",
+      budget: [50],
+      extraRequests: "",
+    },
+  });
 
   async function onSubmit(data: TripFormData) {
     setLoading(true);
@@ -136,15 +127,6 @@ const TripPlanForm = () => {
       
       console.log("Webhook response status:", response.status);
       toast.success("Trip details submitted successfully! Creating your plan...");
-      
-      // In case we don't get a Supabase event, force navigation after 30 seconds
-      setTimeout(() => {
-        if (loading) {
-          console.log("Forcing navigation to result page after timeout");
-          setLoading(false);
-          navigate("/result");
-        }
-      }, 30000);
     } catch (error) {
       console.error("Error submitting trip data:", error);
       toast.error("Failed to submit trip data. Please try again.");
