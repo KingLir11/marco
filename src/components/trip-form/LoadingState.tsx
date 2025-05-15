@@ -1,6 +1,9 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
+import { ArrowRight } from "lucide-react";
 
 export const LoadingState: React.FC = () => {
   const [message, setMessage] = useState("Matching your route with the weather forecast...");
@@ -32,10 +35,10 @@ export const LoadingState: React.FC = () => {
       setMessage(messages[index]);
     }, 4000);
     
-    // Show manual button after 20 seconds as a fallback
+    // Show manual button after 10 seconds as a fallback (reduced from 20 seconds)
     const buttonTimeout = setTimeout(() => {
       setShowManualButton(true);
-    }, 20000);
+    }, 10000);
     
     // Clean up on unmount
     return () => {
@@ -49,7 +52,8 @@ export const LoadingState: React.FC = () => {
   
   // Manual navigation handler
   const handleManualNavigate = () => {
-    console.log("Manual navigation to result page requested");
+    console.log("LoadingState: Manual navigation to result page requested");
+    toast.info("Checking your trip results...");
     navigate("/result");
   };
   
@@ -76,18 +80,20 @@ export const LoadingState: React.FC = () => {
         <div className="h-2 w-2 bg-primary/70 rounded-full animate-pulse delay-300"></div>
       </div>
       
-      {/* Manual button for fallback navigation */}
+      {/* Manual button for fallback navigation - show earlier and make more prominent */}
       {showManualButton && (
-        <div className="mt-8">
+        <div className="mt-8 animate-bounce">
           <Button 
             onClick={handleManualNavigate}
-            variant="secondary"
-            className="animate-pulse"
+            variant="default"
+            size="lg"
+            className="gap-2"
           >
             View Trip Results
+            <ArrowRight className="h-4 w-4" />
           </Button>
-          <p className="text-xs text-gray-500 mt-2">
-            Taking too long? Click to view your trip results.
+          <p className="text-sm text-gray-500 mt-2">
+            Click to check if your trip plan is ready
           </p>
         </div>
       )}
