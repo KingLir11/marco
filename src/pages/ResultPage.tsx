@@ -7,18 +7,14 @@ import ResultPageLayout from "@/components/trip-result/ResultPageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useRealtimeImages } from "@/hooks/use-realtime-images";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ArrowRight } from "lucide-react"; // Added ArrowRight import
-import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
-import { toast } from "@/components/ui/sonner";
-import { getLatestTripImagePlan } from "@/services/tripImageService";
+import { RefreshCw } from "lucide-react"; // Updated import to use lucide-react
+import { Link } from "react-router-dom";
 
 const ResultPage = () => {
-  const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0); // Key to force component refresh
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();
@@ -26,36 +22,6 @@ const ResultPage = () => {
   useEffect(() => {
     console.log("ResultPage: Realtime connection status:", connected ? "Connected" : "Disconnected");
   }, [connected]);
-
-  // Initial check for data
-  useEffect(() => {
-    const checkForData = async () => {
-      try {
-        console.log("ResultPage: Checking for existing trip data...");
-        const latestPlan = await getLatestTripImagePlan();
-        
-        if (!latestPlan) {
-          console.log("ResultPage: No trip data found, redirecting to plan page");
-          toast.error("No trip plan found. Please create a new trip plan.", {
-            duration: 5000,
-          });
-          setTimeout(() => navigate("/plan"), 1000);
-        } else {
-          console.log("ResultPage: Found trip data", latestPlan);
-          if (latestPlan["Image URL"]) {
-            setBackgroundImage(latestPlan["Image URL"]);
-          }
-        }
-      } catch (err) {
-        console.error("Error checking for trip data:", err);
-        setError("Failed to load trip data. Please try again.");
-      } finally {
-        setInitialCheckDone(true);
-      }
-    };
-    
-    checkForData();
-  }, [navigate]);
   
   // Handler for when a new image is loaded
   const handleImageLoad = (imageURL: string) => {
@@ -68,7 +34,6 @@ const ResultPage = () => {
   const handleRefresh = () => {
     console.log("ResultPage: Refreshing trip result content");
     setRefreshKey(prevKey => prevKey + 1);
-    setError(null);
   };
 
   // Manual retry function
@@ -78,17 +43,6 @@ const ResultPage = () => {
     setRefreshKey(prevKey => prevKey + 1);
     setError(null);
   };
-
-  if (!initialCheckDone) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-          <p className="mt-4">Loading trip data...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -113,14 +67,11 @@ const ResultPage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button onClick={handleRetry} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4" /> {/* Updated icon component */}
                 Retry Loading
               </Button>
               <Button asChild>
-                <Link to="/plan" className="gap-2">
-                  <ArrowRight className="h-4 w-4" />
-                  Create New Trip Plan
-                </Link>
+                <Link to="/plan">Create New Trip Plan</Link>
               </Button>
             </div>
           </div>

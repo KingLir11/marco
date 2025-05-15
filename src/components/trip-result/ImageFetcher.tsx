@@ -23,19 +23,19 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
   
   // Handle new images from Supabase Realtime
   const handleNewImage = (data: ImagePlanData) => {
-    console.log("ImageFetcher: New trip plan received via realtime!", data);
+    console.log("ResultPage: New trip plan received via realtime!", data);
     toast.success("New trip plan received!");
     
     // Update the background image if a new one is available
     if (data && data["Image URL"]) {
-      console.log("ImageFetcher: Updating image to:", data["Image URL"]);
+      console.log("ResultPage: Updating background image to:", data["Image URL"]);
       onImageLoad(data["Image URL"]);
       // Trigger refresh
       onRefresh();
       // Clear any previous errors
       setError(null);
     } else {
-      console.warn("ImageFetcher: Trip plan received but no image URL was provided");
+      console.warn("ResultPage: Trip plan received but no image URL was provided");
     }
   };
   
@@ -43,12 +43,12 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
   const { connected } = useRealtimeImages(handleNewImage);
 
   useEffect(() => {
-    console.log("ImageFetcher: Realtime connection status:", connected ? "Connected" : "Disconnected");
+    console.log("Realtime connection status:", connected ? "Connected" : "Disconnected");
   }, [connected]);
   
   // Fetch latest image on initial load
   useEffect(() => {
-    console.log("ImageFetcher: Fetching latest image...");
+    console.log("ResultPage: Fetching latest image...");
     
     const fetchLatestImage = async () => {
       try {
@@ -71,16 +71,14 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
           return;
         }
         
-        console.log("ImageFetcher: Fetched latest data:", data);
+        console.log("ResultPage: Fetched latest data:", data);
         
         if (data?.["Image URL"]) {
-          console.log("ImageFetcher: Setting background image:", data["Image URL"]);
+          console.log("ResultPage: Setting background image:", data["Image URL"]);
           onImageLoad(data["Image URL"]);
           onRefresh();
-          toast.success("Trip plan loaded successfully!");
         } else {
-          console.log("ImageFetcher: No trip plan found or no image URL in the data");
-          // Only set this error if we've found data but no image URL
+          console.log("ResultPage: No trip plan found or no image URL in the data");
           if (data) {
             setError("Trip plan found but it doesn't have an image URL yet. Waiting for updates...");
           } else {
@@ -91,12 +89,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
               .from('URL+Response')
               .select('*', { count: 'exact', head: true });
               
-            console.log(`ImageFetcher: Found ${count || 0} rows in the URL+Response table`);
-            
             if (count === 0) {
-              console.log("ImageFetcher: No rows in URL+Response table, redirecting to plan page");
+              console.log("ResultPage: No rows in URL+Response table, redirecting to plan page");
               toast.error("No trip plan found. Please create a new trip plan.");
-              // Give toast time to display before redirecting
               setTimeout(() => navigate("/plan"), 1500);
             }
           }
@@ -115,7 +110,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
 
   // Retry loading the image
   const handleRetry = () => {
-    console.log("ImageFetcher: Retrying image fetch...");
+    console.log("Retrying image fetch...");
     setError(null);
     setHasAttemptedFetch(false);
     // Force re-run of the useEffect
