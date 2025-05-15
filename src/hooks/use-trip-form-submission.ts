@@ -14,6 +14,7 @@ export function useTripFormSubmission() {
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const navigationTimerRef = useRef<number | null>(null);
   const longWaitTimerRef = useRef<number | null>(null);
+  const notificationShownRef = useRef(false);
 
   // Handle new images from Supabase Realtime
   const handleNewImage = (data: ImagePlanData) => {
@@ -43,12 +44,16 @@ export function useTripFormSubmission() {
   const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
   
   useEffect(() => {
-    if (submittedAt && connected) {
+    if (submittedAt && connected && !notificationShownRef.current) {
       console.log("Connected to Supabase Realtime and waiting for new data...");
       toast.info("Waiting for your trip plan to be generated...");
+      notificationShownRef.current = true;
     }
     
     return () => {
+      // Reset notification state when component unmounts
+      notificationShownRef.current = false;
+      
       // Clean up timers on unmount
       if (navigationTimerRef.current) {
         clearTimeout(navigationTimerRef.current);
@@ -103,6 +108,7 @@ export function useTripFormSubmission() {
     setLoading(true);
     const currentTime = new Date();
     setSubmittedAt(currentTime);
+    notificationShownRef.current = false;
     
     try {
       // Generate a random ID suitable for Supabase int8 type
