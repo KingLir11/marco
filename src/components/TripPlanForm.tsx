@@ -52,7 +52,8 @@ const TripPlanForm = () => {
         (payload) => {
           console.log("New trip plan received!", payload);
           toast.success("Your trip plan is ready!");
-          navigate("/result");
+          setLoading(false); // Ensure loading state is cleared
+          navigate("/result"); // Navigate to result page
         }
       )
       .subscribe();

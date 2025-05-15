@@ -7,8 +7,10 @@ import ChatBot from "@/components/ChatBot";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { useNavigate } from "react-router-dom";
 
 const ResultPage = () => {
+  const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -30,6 +32,10 @@ const ResultPage = () => {
         
         if (data?.ImageURL) {
           setBackgroundImage(data.ImageURL);
+        } else {
+          // If no data is found, redirect to plan page
+          toast.error("No trip plan found. Please create a new trip plan.");
+          navigate("/plan");
         }
         
       } catch (error) {
@@ -40,7 +46,7 @@ const ResultPage = () => {
     };
     
     fetchLatestImage();
-  }, []);
+  }, [navigate]);
   
   // Subscribe to new inserts in the Images-Plan table
   useEffect(() => {
