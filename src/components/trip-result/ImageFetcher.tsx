@@ -5,6 +5,9 @@ import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeImages, ImagePlanData } from "@/hooks/use-realtime-images";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { debugLogAllRows } from "@/services/tripImageService";
 
 interface ImageFetcherProps {
@@ -31,6 +34,8 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
       onRefresh();
       // Clear any previous errors
       setError(null);
+    } else {
+      console.warn("ResultPage: Trip plan received but no image URL was provided");
     }
   };
   
@@ -75,9 +80,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         } else {
           console.log("ResultPage: No trip plan found or no image URL in the data");
           if (data) {
-            setError("Trip plan found but it doesn't have an image URL. Waiting for updates...");
+            setError("Trip plan found but it doesn't have an image URL yet. Waiting for updates...");
           } else {
-            setError("No trip plan found yet. Waiting for updates...");
+            setError("No trip plan found yet. Please try creating a new trip plan.");
             
             // Check if there are ANY rows in the table
             const { count } = await supabase
@@ -87,7 +92,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
             if (count === 0) {
               console.log("ResultPage: No rows in URL+Response table, redirecting to plan page");
               toast.error("No trip plan found. Please create a new trip plan.");
-              navigate("/plan");
+              setTimeout(() => navigate("/plan"), 1500);
             }
           }
         }
@@ -103,13 +108,34 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
     fetchLatestImage();
   }, [navigate, onImageLoad, onRefresh]);
 
+  // Retry loading the image
+  const handleRetry = () => {
+    console.log("Retrying image fetch...");
+    setError(null);
+    setHasAttemptedFetch(false);
+    // Force re-run of the useEffect
+    onRefresh();
+  };
+
   // Display error if needed
   if (error && !loading && hasAttemptedFetch) {
     return (
-      <Alert variant="destructive" className="max-w-md mx-auto mt-4">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+        <Alert variant="destructive" className="max-w-md mx-auto">
+          <AlertTitle>Error Loading Trip Plan</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+          
+          <div className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button onClick={handleRetry} size="sm" variant="outline" className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Retry
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/plan">Create New Trip</Link>
+            </Button>
+          </div>
+        </Alert>
+      </div>
     );
   }
 

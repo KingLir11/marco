@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { TripFormData } from "@/lib/schemas/tripPlanSchema";
@@ -15,21 +15,22 @@ export function useTripFormSubmission() {
   const navigationTimerRef = useRef<number | null>(null);
   const longWaitTimerRef = useRef<number | null>(null);
   const notificationShownRef = useRef(false);
-
-  // Handle new images from Supabase Realtime
-  const handleNewImage = (data: ImagePlanData) => {
+  const submittedIdRef = useRef<string | null>(null);
+  
+  // Memoize the handleNewImage function to avoid recreating it on every render
+  const handleNewImage = useCallback((data: ImagePlanData) => {
     console.log("New trip plan received in TripPlanForm!", data);
     toast.success("Your trip plan is ready!");
     setLoading(false);
     
     // Clear any pending timers
     if (navigationTimerRef.current) {
-      clearTimeout(navigationTimerRef.current);
+      window.clearTimeout(navigationTimerRef.current);
       navigationTimerRef.current = null;
     }
     
     if (longWaitTimerRef.current) {
-      clearTimeout(longWaitTimerRef.current);
+      window.clearTimeout(longWaitTimerRef.current);
       longWaitTimerRef.current = null;
     }
     
@@ -38,7 +39,7 @@ export function useTripFormSubmission() {
       console.log("Navigating to result page...");
       navigate("/result");
     }, 500);
-  };
+  }, [navigate]);
   
   // Only set up the realtime listener if we've submitted the form
   const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
@@ -56,11 +57,13 @@ export function useTripFormSubmission() {
       
       // Clean up timers on unmount
       if (navigationTimerRef.current) {
-        clearTimeout(navigationTimerRef.current);
+        window.clearTimeout(navigationTimerRef.current);
+        navigationTimerRef.current = null;
       }
       
       if (longWaitTimerRef.current) {
-        clearTimeout(longWaitTimerRef.current);
+        window.clearTimeout(longWaitTimerRef.current);
+        longWaitTimerRef.current = null;
       }
     };
   }, [submittedAt, connected]);
@@ -68,6 +71,8 @@ export function useTripFormSubmission() {
   // Set a fallback timeout in case we don't receive a webhook response
   useEffect(() => {
     if (!submittedAt || !loading) return;
+    
+    console.log("Setting fallback timeouts for navigation");
     
     // First warning after 2 minutes
     longWaitTimerRef.current = window.setTimeout(() => {
@@ -87,7 +92,7 @@ export function useTripFormSubmission() {
     // Force navigation after 30 seconds if we haven't received a response
     navigationTimerRef.current = window.setTimeout(() => {
       if (loading) {
-        console.log("Forcing navigation to result page after timeout");
+        console.log("Forcing navigation to result page after 30 second timeout");
         setLoading(false);
         navigate("/result");
       }
@@ -95,11 +100,11 @@ export function useTripFormSubmission() {
 
     return () => {
       if (navigationTimerRef.current) {
-        clearTimeout(navigationTimerRef.current);
+        window.clearTimeout(navigationTimerRef.current);
       }
       
       if (longWaitTimerRef.current) {
-        clearTimeout(longWaitTimerRef.current);
+        window.clearTimeout(longWaitTimerRef.current);
       }
     };
   }, [submittedAt, loading, navigate]);
@@ -113,6 +118,7 @@ export function useTripFormSubmission() {
     try {
       // Generate a random ID suitable for Supabase int8 type
       const supabaseId = generateSupabaseId();
+      submittedIdRef.current = supabaseId.toString();
       
       // Format dates to ISO strings for the API
       const formattedData = {
