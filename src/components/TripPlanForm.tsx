@@ -13,12 +13,15 @@ import { BudgetField } from "@/components/trip-form/BudgetField";
 import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 import { toast } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
 const TripPlanForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
+  const [submittedAt, setSubmittedAt] = React.useState<Date | null>(null);
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),
@@ -30,8 +33,54 @@ const TripPlanForm = () => {
     },
   });
 
+  // Listen for new Supabase data after form submission
+  useEffect(() => {
+    if (!submittedAt) return;
+
+    // Calculate time threshold (1 minute before current submission)
+    const timeThreshold = new Date(submittedAt.getTime() - 60000);
+    
+    const channel = supabase
+      .channel('waiting-for-trip-plan')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'Images-Plan'
+        },
+        (payload) => {
+          console.log("New trip plan received!", payload);
+          toast.success("Your trip plan is ready!");
+          navigate("/result");
+        }
+      )
+      .subscribe();
+
+    // Set a fallback timeout (2 minutes)
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        toast.info("Still working on your trip plan. Please wait a moment...");
+        
+        // Set another timeout for another 2 minutes
+        setTimeout(() => {
+          if (loading) {
+            setLoading(false);
+            toast.error("It's taking longer than expected. Please try again.");
+          }
+        }, 120000);
+      }
+    }, 120000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearTimeout(timeoutId);
+    };
+  }, [submittedAt, loading, navigate]);
+
   async function onSubmit(data: TripFormData) {
     setLoading(true);
+    setSubmittedAt(new Date());
     
     try {
       // Format dates to ISO strings for the API
@@ -57,13 +106,13 @@ const TripPlanForm = () => {
         throw new Error("Failed to send trip data");
       }
       
-      toast.success("Trip details submitted successfully!");
-      navigate("/result");
+      toast.success("Trip details submitted successfully! Creating your plan...");
+      // We don't navigate immediately, we wait for Supabase update
     } catch (error) {
       console.error("Error submitting trip data:", error);
       toast.error("Failed to submit trip data. Please try again.");
-    } finally {
       setLoading(false);
+      setSubmittedAt(null);
     }
   }
 
@@ -73,7 +122,12 @@ const TripPlanForm = () => {
         <h1 className="text-3xl font-bold font-playfair text-center mb-8">Plan Your Trip</h1>
         
         {loading ? (
-          <LoadingState />
+          <div className="space-y-4">
+            <LoadingState />
+            <p className="text-center text-gray-600">
+              We're creating your personalized trip plan. This may take a minute...
+            </p>
+          </div>
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
