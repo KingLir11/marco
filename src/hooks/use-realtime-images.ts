@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/sonner';
 
 // Channel name used consistently across components
 export const CHANNEL_NAME = 'public:Images-Plan';
@@ -13,11 +14,13 @@ export interface ImagePlanData {
 
 export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
   const [connected, setConnected] = useState(false);
+  const channelRef = useRef<any>(null);
   
   // Set up the Supabase realtime connection
   useEffect(() => {
     console.log("Setting up Realtime listener for 'Images-Plan' table");
     
+    // Create channel only once
     const channel = supabase
       .channel(CHANNEL_NAME)
       .on(
@@ -38,13 +41,27 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
       .subscribe((status) => {
         console.log("Supabase channel status:", status);
         setConnected(status === 'SUBSCRIBED');
+        
+        if (status === 'SUBSCRIBED') {
+          toast.success("Connected to real-time updates!");
+        } else if (status === 'TIMED_OUT') {
+          toast.error("Connection timed out. Please refresh the page.");
+        } else if (status === 'CHANNEL_ERROR') {
+          toast.error("Error connecting to real-time updates.");
+        }
       });
+      
+    // Store the channel reference
+    channelRef.current = channel;
 
+    // Cleanup function
     return () => {
       console.log("Cleaning up Supabase channel");
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
     };
-  }, [onNewImage]);
+  }, [onNewImage]); // Only recreate when onNewImage changes
 
   return { connected };
 }

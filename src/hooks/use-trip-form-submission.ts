@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/sonner";
 import { TripFormData } from "@/lib/schemas/tripPlanSchema";
@@ -11,12 +11,25 @@ export function useTripFormSubmission() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const navigationTimerRef = useRef<number | null>(null);
+  const longWaitTimerRef = useRef<number | null>(null);
 
   // Handle new images from Supabase Realtime
   const handleNewImage = (data: ImagePlanData) => {
     console.log("New trip plan received in TripPlanForm!", data);
     toast.success("Your trip plan is ready!");
     setLoading(false);
+    
+    // Clear any pending timers
+    if (navigationTimerRef.current) {
+      clearTimeout(navigationTimerRef.current);
+      navigationTimerRef.current = null;
+    }
+    
+    if (longWaitTimerRef.current) {
+      clearTimeout(longWaitTimerRef.current);
+      longWaitTimerRef.current = null;
+    }
     
     // Add a small delay before navigation to ensure state updates are processed
     setTimeout(() => {
@@ -31,19 +44,32 @@ export function useTripFormSubmission() {
   useEffect(() => {
     if (submittedAt && connected) {
       console.log("Connected to Supabase Realtime and waiting for new data...");
+      toast.info("Waiting for your trip plan to be generated...");
     }
+    
+    return () => {
+      // Clean up timers on unmount
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+      
+      if (longWaitTimerRef.current) {
+        clearTimeout(longWaitTimerRef.current);
+      }
+    };
   }, [submittedAt, connected]);
 
   // Set a fallback timeout in case we don't receive a webhook response
   useEffect(() => {
     if (!submittedAt || !loading) return;
     
-    const timeoutId = setTimeout(() => {
+    // First warning after 2 minutes
+    longWaitTimerRef.current = window.setTimeout(() => {
       if (loading) {
         toast.info("Still working on your trip plan. Please wait a moment...");
         
         // Set another timeout for another 2 minutes
-        setTimeout(() => {
+        longWaitTimerRef.current = window.setTimeout(() => {
           if (loading) {
             setLoading(false);
             toast.error("It's taking longer than expected. Please try again.");
@@ -52,16 +78,8 @@ export function useTripFormSubmission() {
       }
     }, 120000);
 
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [submittedAt, loading]);
-
-  // Force navigation after 30 seconds if we haven't received a response
-  useEffect(() => {
-    if (!submittedAt || !loading) return;
-    
-    const timeoutId = setTimeout(() => {
+    // Force navigation after 30 seconds if we haven't received a response
+    navigationTimerRef.current = window.setTimeout(() => {
       if (loading) {
         console.log("Forcing navigation to result page after timeout");
         setLoading(false);
@@ -70,7 +88,13 @@ export function useTripFormSubmission() {
     }, 30000);
 
     return () => {
-      clearTimeout(timeoutId);
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+      
+      if (longWaitTimerRef.current) {
+        clearTimeout(longWaitTimerRef.current);
+      }
     };
   }, [submittedAt, loading, navigate]);
 
@@ -101,14 +125,16 @@ export function useTripFormSubmission() {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to send trip data");
+        throw new Error(`Failed to send trip data: ${response.status} ${response.statusText}`);
       }
       
       console.log("Webhook response status:", response.status);
       toast.success("Trip details submitted successfully! Creating your plan...");
+      
+      // We'll wait for the realtime update or the timeout to navigate
     } catch (error) {
       console.error("Error submitting trip data:", error);
-      toast.error("Failed to submit trip data. Please try again.");
+      toast.error(`Failed to submit trip data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
       setSubmittedAt(null);
     }
