@@ -22,35 +22,80 @@ const TripResultPage = () => {
     equipment: [] as { name: string; icon: JSX.Element }[]
   });
   const [imageURL, setImageURL] = useState<string | null>(null);
+  const [parsingError, setParsingError] = useState<string | null>(null);
+
+  // Helper function to strip markdown code blocks if present
+  const cleanJsonString = (jsonString: string): string => {
+    if (typeof jsonString !== 'string') {
+      return JSON.stringify(jsonString); // Convert non-string to string
+    }
+    
+    // Remove markdown code blocks if present (```json and ```)
+    const markdownMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+      return markdownMatch[1].trim();
+    }
+    
+    return jsonString.trim();
+  };
 
   useEffect(() => {
     const fetchLatestTripPlan = async () => {
       try {
         setLoading(true);
+        setParsingError(null);
         const latestPlan = await getLatestTripImagePlan();
         
         if (latestPlan) {
-          setImageURL(latestPlan["Image URL"]);
+          // Set image URL if available
+          if (latestPlan["Image URL"]) {
+            if (typeof latestPlan["Image URL"] === 'string') {
+              setImageURL(latestPlan["Image URL"]);
+            } else if (latestPlan["Image URL"] !== null) {
+              // Handle case where Image URL might be stored as JSON
+              setImageURL(String(latestPlan["Image URL"]));
+            }
+          }
           
           // Parse AI response if available
           if (latestPlan.Response) {
             try {
-              const parsedResponse = JSON.parse(latestPlan.Response);
-              if (parsedResponse) {
+              // Get response content
+              let responseData;
+              
+              if (typeof latestPlan.Response === 'string') {
+                // Clean up potential markdown formatting
+                const cleanedJson = cleanJsonString(latestPlan.Response);
+                responseData = JSON.parse(cleanedJson);
+              } else {
+                // If it's already a JSON object (not a string)
+                responseData = latestPlan.Response;
+              }
+              
+              // Debug log the parsed data
+              console.log("Successfully parsed trip data:", responseData);
+              
+              if (responseData) {
                 // Update trip data with the parsed response
                 setTripData({
-                  destination: parsedResponse.destination || "Your Destination",
-                  dateRange: parsedResponse.dateRange || "Your Travel Dates",
-                  mainPlan: parsedResponse.mainPlan || [],
-                  alternativePlan: parsedResponse.alternativePlan || [],
-                  equipment: parsedResponse.equipment ? parsedResponse.equipment.map((item: any) => ({
-                    name: item.name,
-                    icon: getIconForEquipment(item.name)
-                  })) : []
+                  destination: responseData.destination || "Your Destination",
+                  dateRange: responseData.dateRange || "Your Travel Dates",
+                  mainPlan: Array.isArray(responseData.mainPlan) ? responseData.mainPlan : [],
+                  alternativePlan: Array.isArray(responseData.alternativePlan) ? responseData.alternativePlan : [],
+                  equipment: responseData.equipment 
+                    ? responseData.equipment.map((item: any) => ({
+                        name: item.name,
+                        icon: getIconForEquipment(item.name)
+                      })) 
+                    : []
                 });
               }
             } catch (error) {
               console.error("Error parsing AI response:", error);
+              setParsingError(`Failed to parse trip data: ${error instanceof Error ? error.message : String(error)}`);
+              
+              // Log the raw response for debugging
+              console.error("Raw response data:", latestPlan.Response);
               toast.error("Failed to parse trip data");
             }
           }
@@ -74,6 +119,14 @@ const TripResultPage = () => {
         <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
           {loading ? (
             <LoadingState />
+          ) : parsingError ? (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-600">
+              <h3 className="font-medium mb-2">Error parsing trip data</h3>
+              <p className="text-sm">{parsingError}</p>
+              <div className="mt-4">
+                <ActionButtons />
+              </div>
+            </div>
           ) : (
             <>
               <TripHeader destination={tripData.destination} dateRange={tripData.dateRange} />

@@ -25,8 +25,18 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
     
     // Update the background image if a new one is available
     if (data && data["Image URL"]) {
-      console.log("ResultPage: Updating background image to:", data["Image URL"]);
-      onImageLoad(data["Image URL"]);
+      let imageUrl: string;
+      
+      // Handle different types for Image URL
+      if (typeof data["Image URL"] === 'string') {
+        imageUrl = data["Image URL"];
+      } else {
+        // Convert non-string Image URL to string
+        imageUrl = String(data["Image URL"]);
+      }
+      
+      console.log("ResultPage: Updating background image to:", imageUrl);
+      onImageLoad(imageUrl);
       // Trigger refresh
       onRefresh();
       // Clear any previous errors
@@ -69,8 +79,18 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         console.log("ResultPage: Fetched latest data:", data);
         
         if (data?.["Image URL"]) {
-          console.log("ResultPage: Setting background image:", data["Image URL"]);
-          onImageLoad(data["Image URL"]);
+          let imageUrl: string;
+          
+          // Handle different types for Image URL
+          if (typeof data["Image URL"] === 'string') {
+            imageUrl = data["Image URL"];
+          } else {
+            // Convert non-string Image URL to string
+            imageUrl = String(data["Image URL"]);
+          }
+          
+          console.log("ResultPage: Setting background image:", imageUrl);
+          onImageLoad(imageUrl);
           onRefresh();
         } else {
           console.log("ResultPage: No trip plan found or no image URL in the data");

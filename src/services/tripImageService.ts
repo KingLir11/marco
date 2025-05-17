@@ -1,10 +1,11 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 export interface TripImagePlan {
   created_at: string;
-  "Image URL": string | null;
-  Response: string | null;
+  "Image URL": string | Json | null;
+  Response: string | Json | null;
 }
 
 export const getTripImagePlans = async (): Promise<TripImagePlan[]> => {
@@ -44,6 +45,17 @@ export const getLatestTripImagePlan = async (): Promise<TripImagePlan | null> =>
     }
 
     console.log("Latest trip image plan:", data);
+    
+    if (data) {
+      // Log the type of Response field to help with debugging
+      console.log("Response field type:", typeof data.Response);
+      
+      // If Response is a string, check if it contains JSON in a markdown code block
+      if (typeof data.Response === 'string') {
+        console.log("Response sample:", data.Response.substring(0, 200) + "...");
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('Failed to fetch latest trip image plan:', error);
@@ -92,7 +104,13 @@ export const debugLogAllRows = async () => {
         created_at: row.created_at,
         hasImageURL: !!row["Image URL"],
         hasResponse: !!row.Response,
-        imageURLPreview: row["Image URL"] ? row["Image URL"].substring(0, 50) + '...' : null
+        imageURLPreview: row["Image URL"] ? String(row["Image URL"]).substring(0, 50) + '...' : null,
+        responseType: typeof row.Response,
+        responseSample: row.Response ? 
+          (typeof row.Response === 'string' ? 
+            row.Response.substring(0, 50) + '...' : 
+            'Non-string response') 
+          : null
       });
     });
     console.log("=== END DEBUG LOG ===");

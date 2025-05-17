@@ -7,8 +7,9 @@ import ResultPageLayout from "@/components/trip-result/ResultPageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useRealtimeImages } from "@/hooks/use-realtime-images";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react"; // Updated import to use lucide-react
+import { RefreshCw } from "lucide-react"; 
 import { Link } from "react-router-dom";
+import { debugLogAllRows } from "@/services/tripImageService";
 
 const ResultPage = () => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -21,6 +22,13 @@ const ResultPage = () => {
   
   useEffect(() => {
     console.log("ResultPage: Realtime connection status:", connected ? "Connected" : "Disconnected");
+    
+    // Debug: Log all rows in the table to help diagnose issues
+    const logRows = async () => {
+      await debugLogAllRows();
+    };
+    
+    logRows();
   }, [connected]);
   
   // Handler for when a new image is loaded
@@ -67,7 +75,7 @@ const ResultPage = () => {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button onClick={handleRetry} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" /> {/* Updated icon component */}
+                <RefreshCw className="h-4 w-4" />
                 Retry Loading
               </Button>
               <Button asChild>
