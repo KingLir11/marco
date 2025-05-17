@@ -12,7 +12,11 @@ import TripPlanDisplays from "./trip-result/TripPlanDisplays";
 import PackingList from "./trip-result/PackingList";
 import ActionButtons from "./trip-result/ActionButtons";
 
-const TripResultPage = () => {
+interface TripResultPageProps {
+  webhookData?: any;
+}
+
+const TripResultPage = ({ webhookData }: TripResultPageProps) => {
   const [loading, setLoading] = useState(true);
   const [tripData, setTripData] = useState({
     destination: "",
@@ -101,26 +105,70 @@ const TripResultPage = () => {
   };
 
   useEffect(() => {
-    const fetchLatestTripPlan = async () => {
+    const processData = async () => {
       try {
         setLoading(true);
         setParsingError(null);
-        const latestPlan = await getLatestTripImagePlan();
         
-        if (latestPlan) {
-          // Set image URL if available
-          if (latestPlan["Image URL"]) {
-            if (typeof latestPlan["Image URL"] === 'string') {
-              setImageURL(latestPlan["Image URL"]);
-            } else if (latestPlan["Image URL"] !== null) {
-              // Handle case where Image URL might be stored as JSON
-              setImageURL(String(latestPlan["Image URL"]));
+        let responseData: any = null;
+        let imageUrl: string | null = null;
+        
+        // If webhook data is provided, use it
+        if (webhookData) {
+          console.log("Using webhook data:", webhookData);
+          
+          // Get image URL from webhook data
+          if (webhookData.imageUrl || webhookData.imageURL || webhookData["Image URL"]) {
+            imageUrl = webhookData.imageUrl || webhookData.imageURL || webhookData["Image URL"];
+            
+            // Clean the image URL if it's wrapped in quotes
+            if (typeof imageUrl === 'string' && (imageUrl.startsWith('"') && imageUrl.endsWith('"'))) {
+              imageUrl = imageUrl.slice(1, -1);
             }
+            setImageURL(imageUrl);
           }
           
-          // Parse AI response if available
-          if (latestPlan.Response) {
-            try {
+          // Get response data from webhook
+          if (webhookData.tripPlan || webhookData.Response) {
+            const rawResponseData = webhookData.tripPlan || webhookData.Response;
+            
+            // Store raw response for debugging
+            if (typeof rawResponseData === 'string') {
+              setRawResponse(rawResponseData);
+            } else {
+              setRawResponse(JSON.stringify(rawResponseData));
+            }
+            
+            // Parse response data
+            if (typeof rawResponseData === 'string') {
+              const cleanedJson = cleanJsonString(rawResponseData);
+              responseData = JSON.parse(cleanedJson);
+            } else {
+              responseData = rawResponseData;
+            }
+          }
+        } else {
+          // Fallback: fetch from Supabase
+          const latestPlan = await getLatestTripImagePlan();
+          
+          if (latestPlan) {
+            // Set image URL if available
+            if (latestPlan["Image URL"]) {
+              if (typeof latestPlan["Image URL"] === 'string') {
+                imageUrl = latestPlan["Image URL"];
+                
+                // Clean the image URL if it's wrapped in quotes
+                if (imageUrl.startsWith('"') && imageUrl.endsWith('"')) {
+                  imageUrl = imageUrl.slice(1, -1);
+                }
+                setImageURL(imageUrl);
+              } else if (latestPlan["Image URL"] !== null) {
+                setImageURL(String(latestPlan["Image URL"]));
+              }
+            }
+            
+            // Parse AI response if available
+            if (latestPlan.Response) {
               // Store raw response for debugging
               if (typeof latestPlan.Response === 'string') {
                 setRawResponse(latestPlan.Response);
@@ -129,60 +177,54 @@ const TripResultPage = () => {
               }
               
               // Get response content
-              let responseData;
-              
               if (typeof latestPlan.Response === 'string') {
                 // Clean up potential markdown formatting
                 const cleanedJson = cleanJsonString(latestPlan.Response);
                 responseData = JSON.parse(cleanedJson);
               } else {
-                // If it's already a JSON object (not a string)
                 responseData = latestPlan.Response;
               }
-              
-              // Debug log the parsed data
-              console.log("Successfully parsed trip data:", responseData);
-              
-              if (responseData) {
-                // Process the complex response structure into a normalized format
-                const normalizedData = extractTripData(responseData);
-                
-                // Update trip data with the normalized response
-                setTripData({
-                  destination: normalizedData.destination || "Your Destination",
-                  dateRange: normalizedData.dateRange || "Your Travel Dates",
-                  mainPlan: Array.isArray(normalizedData.mainPlan) ? normalizedData.mainPlan : [],
-                  alternativePlan: Array.isArray(normalizedData.alternativePlan) ? normalizedData.alternativePlan : [],
-                  equipment: normalizedData.equipment 
-                    ? normalizedData.equipment.map((item: any) => ({
-                        name: item.name,
-                        icon: getIconForEquipment(item.name)
-                      })) 
-                    : []
-                });
-              }
-            } catch (error) {
-              console.error("Error parsing AI response:", error);
-              setParsingError(`Failed to parse trip data: ${error instanceof Error ? error.message : String(error)}`);
-              
-              // Log the raw response for debugging
-              console.error("Raw response data:", latestPlan.Response);
-              toast.error("Failed to parse trip data");
             }
+          } else {
+            toast.error("No trip plan found. Please create a new trip plan.");
           }
-        } else {
-          toast.error("No trip plan found. Please create a new trip plan.");
+        }
+        
+        // Debug log the parsed data
+        console.log("Successfully parsed trip data:", responseData);
+        
+        if (responseData) {
+          // Process the complex response structure into a normalized format
+          const normalizedData = extractTripData(responseData);
+          
+          // Update trip data with the normalized response
+          setTripData({
+            destination: normalizedData.destination || "Your Destination",
+            dateRange: normalizedData.dateRange || "Your Travel Dates",
+            mainPlan: Array.isArray(normalizedData.mainPlan) ? normalizedData.mainPlan : [],
+            alternativePlan: Array.isArray(normalizedData.alternativePlan) ? normalizedData.alternativePlan : [],
+            equipment: normalizedData.equipment 
+              ? normalizedData.equipment.map((item: any) => ({
+                  name: item.name,
+                  icon: getIconForEquipment(item.name)
+                })) 
+              : []
+          });
         }
       } catch (error) {
-        console.error("Error fetching trip plan:", error);
-        toast.error("Failed to load trip data");
+        console.error("Error parsing trip data:", error);
+        setParsingError(`Failed to parse trip data: ${error instanceof Error ? error.message : String(error)}`);
+        
+        // Log the raw response for debugging
+        console.error("Raw response data:", webhookData?.Response || webhookData?.tripPlan || "No raw data available");
+        toast.error("Failed to parse trip data");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLatestTripPlan();
-  }, []);
+    processData();
+  }, [webhookData]);
 
   return (
     <div className="py-20 px-4">

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react"; 
 import { Link } from "react-router-dom";
 import { debugLogAllRows } from "@/services/tripImageService";
+import { useLocation } from "react-router-dom";
+import { toast } from "@/components/ui/sonner";
 
 const ResultPage = () => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -17,6 +19,12 @@ const ResultPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [webhookData, setWebhookData] = useState<any>(null);
+  
+  // Get query parameters from URL
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const webhookResponse = queryParams.get('response');
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();
@@ -30,7 +38,30 @@ const ResultPage = () => {
     };
     
     logRows();
-  }, [connected]);
+    
+    // Check for webhook response in URL parameters
+    if (webhookResponse) {
+      try {
+        // Try to parse the webhook response data
+        const parsedData = JSON.parse(decodeURIComponent(webhookResponse));
+        console.log("ResultPage: Parsed webhook response data:", parsedData);
+        
+        // Set webhook data for use in components
+        setWebhookData(parsedData);
+        
+        // If there's an image URL in the webhook data, use it
+        if (parsedData.imageUrl || parsedData.imageURL || parsedData["Image URL"]) {
+          const imageUrl = parsedData.imageUrl || parsedData.imageURL || parsedData["Image URL"];
+          setBackgroundImage(imageUrl);
+          setError(null);
+          toast.success("Trip plan loaded from webhook response");
+        }
+      } catch (error) {
+        console.error("Error parsing webhook response:", error);
+        setError(`Failed to parse webhook response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+  }, [connected, webhookResponse]);
   
   // Handler for when a new image is loaded
   const handleImageLoad = (imageURL: string) => {
@@ -70,12 +101,14 @@ const ResultPage = () => {
       {/* Background component */}
       <BackgroundImage imageURL={backgroundImage} />
       
-      {/* Image fetcher component */}
-      <ImageFetcher 
-        key={`image-fetcher-${retryCount}`}
-        onImageLoad={handleImageLoad} 
-        onRefresh={handleRefresh} 
-      />
+      {/* Only use ImageFetcher if we don't have webhook data */}
+      {!webhookData && (
+        <ImageFetcher 
+          key={`image-fetcher-${retryCount}`}
+          onImageLoad={handleImageLoad} 
+          onRefresh={handleRefresh} 
+        />
+      )}
       
       {/* Page layout with content */}
       <ResultPageLayout>
@@ -106,7 +139,7 @@ const ResultPage = () => {
             </div>
           </div>
         ) : (
-          <TripResultPage key={refreshKey} />
+          <TripResultPage key={refreshKey} webhookData={webhookData} />
         )}
       </ResultPageLayout>
     </div>

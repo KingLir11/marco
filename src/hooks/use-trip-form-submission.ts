@@ -121,7 +121,8 @@ export function useTripFormSubmission() {
         startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
         endDate: data.endDate.toISOString().split('T')[0],
         budget: data.budget[0], // Send the single budget value instead of array
-        submittedAt: currentTime.toISOString() // Add submission timestamp
+        submittedAt: currentTime.toISOString(), // Add submission timestamp
+        expectWebhookResponse: true // Flag to indicate we expect a webhook response
       };
       
       console.log("Sending form data to webhook with ID:", supabaseId);
@@ -141,6 +142,26 @@ export function useTripFormSubmission() {
       
       console.log("Webhook response status:", response.status);
       toast.success("Trip details submitted successfully! Creating your plan...");
+      
+      // If the webhook returns a direct response with the trip plan
+      try {
+        const responseData = await response.json();
+        console.log("Received direct webhook response:", responseData);
+        
+        if (responseData && (responseData.tripPlan || responseData.imageUrl)) {
+          // We have a direct response, navigate to result page with the data
+          const queryParams = new URLSearchParams();
+          queryParams.set('response', encodeURIComponent(JSON.stringify(responseData)));
+          
+          navigate(`/result?${queryParams.toString()}`);
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        // No JSON response or parsing error - this is expected if the webhook doesn't 
+        // return a direct response, so we'll wait for realtime updates
+        console.log("No direct webhook response with JSON data, waiting for realtime updates...");
+      }
       
       // We'll wait for the realtime update or the timeout to navigate
     } catch (error) {
