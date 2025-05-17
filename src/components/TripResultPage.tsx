@@ -22,6 +22,7 @@ const TripResultPage = () => {
     equipment: [] as { name: string; icon: JSX.Element }[]
   });
   const [imageURL, setImageURL] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLatestTripPlan = async () => {
@@ -32,8 +33,11 @@ const TripResultPage = () => {
         if (latestPlan) {
           setImageURL(latestPlan["Image URL"]);
           
-          // Parse AI response if available
+          // Store raw response text for fallback display
           if (latestPlan.Response) {
+            setRawResponse(latestPlan.Response);
+            
+            // Try to parse as JSON
             try {
               const parsedResponse = JSON.parse(latestPlan.Response);
               if (parsedResponse) {
@@ -51,7 +55,16 @@ const TripResultPage = () => {
               }
             } catch (error) {
               console.error("Error parsing AI response:", error);
-              toast.error("Failed to parse trip data");
+              toast.info("Trip data available in text format");
+              
+              // Set default trip data with placeholders since we couldn't parse JSON
+              setTripData({
+                destination: "Trip Destination",
+                dateRange: "Your Travel Dates",
+                mainPlan: [],
+                alternativePlan: [],
+                equipment: []
+              });
             }
           }
         } else {
@@ -78,7 +91,20 @@ const TripResultPage = () => {
             <>
               <TripHeader destination={tripData.destination} dateRange={tripData.dateRange} />
               <TripImage imageURL={imageURL} destination={tripData.destination} />
-              <TripPlanDisplays mainPlan={tripData.mainPlan} alternativePlan={tripData.alternativePlan} />
+              
+              {/* Display structured data if available */}
+              {(tripData.mainPlan.length > 0 || tripData.alternativePlan.length > 0) ? (
+                <TripPlanDisplays mainPlan={tripData.mainPlan} alternativePlan={tripData.alternativePlan} />
+              ) : rawResponse ? (
+                // Fallback to displaying raw response when JSON parsing failed
+                <div className="mb-10 prose max-w-none">
+                  <h3 className="text-xl font-semibold mb-4">Your Trip Plan</h3>
+                  <div className="bg-white/80 p-6 rounded-lg shadow-sm border">
+                    <pre className="whitespace-pre-wrap text-sm">{rawResponse}</pre>
+                  </div>
+                </div>
+              ) : null}
+              
               <PackingList equipment={tripData.equipment} />
               <ActionButtons />
             </>

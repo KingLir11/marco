@@ -14,19 +14,19 @@ export type Database = {
           created_at: string
           id: number
           "Image URL": string | null
-          Response: string | null
+          Response: Json | null
         }
         Insert: {
           created_at?: string
           id?: number
           "Image URL"?: string | null
-          Response?: string | null
+          Response?: Json | null
         }
         Update: {
           created_at?: string
           id?: number
           "Image URL"?: string | null
-          Response?: string | null
+          Response?: Json | null
         }
         Relationships: []
       }
