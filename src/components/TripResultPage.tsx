@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
+import TripHeader from "@/components/trip/TripHeader";
+import TripContent from "@/components/trip/TripContent";
+import TripActions from "@/components/trip/TripActions";
 
 // Define a simple trip data interface to match our simplified database schema
 interface TripData {
@@ -35,9 +36,9 @@ const TripResultPage = () => {
           return;
         }
 
-        // Fix typing by using explicit generic type parameter
+        // Fix typing by using explicit type annotation
         const { data, error } = await supabase
-          .from("trips")
+          .from<TripData>("trips")
           .select("*")
           .eq("destination", destination)
           .order("created_at", { ascending: false })
@@ -127,33 +128,6 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
     return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
 
-  // Function to convert plain text with markdown-style formatting to HTML
-  const formatTripText = (text: string | null) => {
-    if (!text) return [];
-    
-    // Split text into paragraphs
-    return text.split('\n').map((line, index) => {
-      // Handle headers (###)
-      if (line.startsWith('###')) {
-        return <h3 key={index} className="text-xl font-bold mt-4 mb-2">{line.replace('###', '').trim()}</h3>;
-      }
-      // Handle subheaders (**)
-      else if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
-        return <h4 key={index} className="font-semibold mt-3 mb-1">{line.replace(/\*\*/g, '').trim()}</h4>;
-      }
-      // Handle list items (-)
-      else if (line.trim().startsWith('-')) {
-        return <li key={index} className="ml-4">{line.replace('-', '').trim()}</li>;
-      }
-      // Regular paragraph, but only if not empty
-      else if (line.trim()) {
-        return <p key={index} className="mb-2">{line}</p>;
-      }
-      // Empty line
-      return <br key={index} />;
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="py-20 px-4 flex justify-center items-center">
@@ -173,29 +147,9 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
     <div className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
         <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
-          <header className="mb-8">
-            <h1 className="text-4xl font-bold font-playfair mb-2">{tripData?.destination}</h1>
-            <p className="text-gray-600">{dateRange}</p>
-          </header>
-          
-          <div className="mb-10 prose prose-sm max-w-none">
-            {tripTextContent ? (
-              <div className="bg-white/80 p-6 rounded-lg shadow-sm">
-                {formatTripText(tripTextContent)}
-              </div>
-            ) : (
-              <p className="text-center text-gray-500">Your personalized trip plan is being created...</p>
-            )}
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link to="/my-trips">Save Trip</Link>
-            </Button>
-            <Button asChild className="w-full sm:w-auto bg-primary hover:bg-primary/90">
-              <Link to="/plan">Plan Another Trip</Link>
-            </Button>
-          </div>
+          <TripHeader destination={tripData?.destination} dateRange={dateRange} />
+          <TripContent tripTextContent={tripTextContent} />
+          <TripActions />
         </div>
       </div>
     </div>
