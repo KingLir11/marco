@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { TripData, TripPlanRecord } from '@/lib/types/tripTypes';
 import { Mountain, Map, Compass, Sun, Umbrella, Wind } from 'lucide-react';
 import React from 'react';
+import { normalizeTripPlanData } from '@/lib/schemas/tripDataSchema';
+import { toast } from '@/components/ui/sonner';
 
 // Mock data for when we're in development or if data fetching fails
 const mockTripData: TripData = {
@@ -33,39 +35,39 @@ const mockTripData: TripData = {
 // Convert Supabase trip record to TripData format
 const convertToTripData = (record: TripPlanRecord): TripData => {
   try {
-    // Parse JSON string from trip_plan field
-    const tripPlanData = JSON.parse(record.trip_plan);
+    // Parse JSON string from trip_plan field if it's a string
+    let tripPlanData;
+    
+    if (typeof record.trip_plan === 'string') {
+      tripPlanData = JSON.parse(record.trip_plan);
+    } else {
+      // It's already an object
+      tripPlanData = record.trip_plan;
+    }
     
     // Format date range
     const startDate = new Date(record.start_date);
     const endDate = new Date(record.end_date);
     const dateRange = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
     
-    // If the parsed data is already in TripData format, use it
-    if (tripPlanData.mainPlan && tripPlanData.alternativePlan && tripPlanData.equipment) {
-      return {
-        id: record.id,
-        destination: record.destination,
-        dateRange,
-        ...tripPlanData
-      };
-    }
+    // Normalize and validate the trip plan data
+    const normalizedData = normalizeTripPlanData(tripPlanData);
     
-    // Otherwise, use a simplified mock structure
     return {
       id: record.id,
       destination: record.destination,
       dateRange,
-      mainPlan: mockTripData.mainPlan,
-      alternativePlan: mockTripData.alternativePlan,
-      equipment: mockTripData.equipment
+      ...normalizedData
     };
   } catch (error) {
     console.error("Error converting trip plan data:", error);
+    toast.error("There was an issue loading your trip plan. Using default data instead.");
+    
+    // Return mock data with the real destination as fallback
     return {
       ...mockTripData,
       id: record.id,
-      destination: record.destination
+      destination: record.destination || mockTripData.destination
     };
   }
 };
@@ -104,6 +106,7 @@ export function useTripData(tripId?: string) {
       } catch (err) {
         console.error("Error fetching trip data:", err);
         setError(err instanceof Error ? err : new Error(String(err)));
+        toast.error("Could not fetch trip data. Using default data instead.");
         // Fallback to mock data
         setTripData(mockTripData);
       } finally {
@@ -125,9 +128,12 @@ export function useTripData(tripId?: string) {
       "Compass": <Compass className="h-5 w-5" />
     };
     
+    // Ensure equipment array exists
+    const equipment = tripData.equipment || [];
+    
     return {
       ...tripData,
-      equipment: tripData.equipment.map(item => ({
+      equipment: equipment.map(item => ({
         ...item,
         icon: iconMap[item.name as keyof typeof iconMap] || <Map className="h-5 w-5" />
       }))
