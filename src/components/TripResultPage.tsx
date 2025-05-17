@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import { getLatestTripImagePlan } from "@/services/tripImageService";
 import { getIconForEquipment } from "./trip-result/utils/equipmentIcons";
+import { Json } from "@/integrations/supabase/types";
 
 // Import refactored components
 import LoadingState from "./trip-result/LoadingState";
@@ -22,7 +23,7 @@ const TripResultPage = () => {
     equipment: [] as { name: string; icon: JSX.Element }[]
   });
   const [imageURL, setImageURL] = useState<string | null>(null);
-  const [rawResponse, setRawResponse] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<Json | null>(null);
 
   useEffect(() => {
     const fetchLatestTripPlan = async () => {
@@ -33,37 +34,52 @@ const TripResultPage = () => {
         if (latestPlan) {
           setImageURL(latestPlan["Image URL"]);
           
-          // Store raw response text for fallback display
+          // Store raw response for fallback display
           if (latestPlan.Response) {
             setRawResponse(latestPlan.Response);
             
-            // Try to parse as JSON
-            try {
-              const parsedResponse = JSON.parse(latestPlan.Response);
-              if (parsedResponse) {
-                // Update trip data with the parsed response
+            // Try to parse as JSON if it's a string
+            if (typeof latestPlan.Response === 'string') {
+              try {
+                const parsedResponse = JSON.parse(latestPlan.Response);
+                if (parsedResponse) {
+                  // Update trip data with the parsed response
+                  setTripData({
+                    destination: parsedResponse.destination || "Your Destination",
+                    dateRange: parsedResponse.dateRange || "Your Travel Dates",
+                    mainPlan: parsedResponse.mainPlan || [],
+                    alternativePlan: parsedResponse.alternativePlan || [],
+                    equipment: parsedResponse.equipment ? parsedResponse.equipment.map((item: any) => ({
+                      name: item.name,
+                      icon: getIconForEquipment(item.name)
+                    })) : []
+                  });
+                }
+              } catch (error) {
+                console.error("Error parsing AI response:", error);
+                toast.info("Trip data available in text format");
+                
+                // Set default trip data with placeholders since we couldn't parse JSON
                 setTripData({
-                  destination: parsedResponse.destination || "Your Destination",
-                  dateRange: parsedResponse.dateRange || "Your Travel Dates",
-                  mainPlan: parsedResponse.mainPlan || [],
-                  alternativePlan: parsedResponse.alternativePlan || [],
-                  equipment: parsedResponse.equipment ? parsedResponse.equipment.map((item: any) => ({
-                    name: item.name,
-                    icon: getIconForEquipment(item.name)
-                  })) : []
+                  destination: "Trip Destination",
+                  dateRange: "Your Travel Dates",
+                  mainPlan: [],
+                  alternativePlan: [],
+                  equipment: []
                 });
               }
-            } catch (error) {
-              console.error("Error parsing AI response:", error);
-              toast.info("Trip data available in text format");
-              
-              // Set default trip data with placeholders since we couldn't parse JSON
+            } else if (typeof latestPlan.Response === 'object' && latestPlan.Response !== null) {
+              // If Response is already a JSON object, use it directly
+              const responseObj = latestPlan.Response as any;
               setTripData({
-                destination: "Trip Destination",
-                dateRange: "Your Travel Dates",
-                mainPlan: [],
-                alternativePlan: [],
-                equipment: []
+                destination: responseObj.destination || "Your Destination",
+                dateRange: responseObj.dateRange || "Your Travel Dates",
+                mainPlan: responseObj.mainPlan || [],
+                alternativePlan: responseObj.alternativePlan || [],
+                equipment: responseObj.equipment ? responseObj.equipment.map((item: any) => ({
+                  name: item.name,
+                  icon: getIconForEquipment(item.name)
+                })) : []
               });
             }
           }
@@ -80,6 +96,17 @@ const TripResultPage = () => {
 
     fetchLatestTripPlan();
   }, []);
+
+  // Helper function to safely display raw response as string
+  const renderRawResponse = () => {
+    if (!rawResponse) return null;
+    
+    if (typeof rawResponse === 'string') {
+      return rawResponse;
+    } else {
+      return JSON.stringify(rawResponse, null, 2);
+    }
+  };
 
   return (
     <div className="py-20 px-4">
@@ -100,7 +127,7 @@ const TripResultPage = () => {
                 <div className="mb-10 prose max-w-none">
                   <h3 className="text-xl font-semibold mb-4">Your Trip Plan</h3>
                   <div className="bg-white/80 p-6 rounded-lg shadow-sm border">
-                    <pre className="whitespace-pre-wrap text-sm">{rawResponse}</pre>
+                    <pre className="whitespace-pre-wrap text-sm">{renderRawResponse()}</pre>
                   </div>
                 </div>
               ) : null}
