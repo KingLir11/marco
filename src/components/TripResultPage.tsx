@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import { getLatestTripImagePlan } from "@/services/tripImageService";
 import { getIconForEquipment } from "./trip-result/utils/equipmentIcons";
+import { Json } from "@/integrations/supabase/types";
 
 // Import refactored components
 import LoadingState from "./trip-result/LoadingState";
@@ -30,12 +31,19 @@ const TripResultPage = () => {
         const latestPlan = await getLatestTripImagePlan();
         
         if (latestPlan) {
-          setImageURL(latestPlan["Image URL"]);
+          // Set image URL if available
+          if (latestPlan["Image URL"]) {
+            setImageURL(latestPlan["Image URL"]);
+          }
           
           // Parse AI response if available
           if (latestPlan.Response) {
             try {
-              const parsedResponse = JSON.parse(latestPlan.Response);
+              // Check if Response is already an object or needs to be parsed from string
+              const parsedResponse = typeof latestPlan.Response === 'string' 
+                ? JSON.parse(latestPlan.Response as string) 
+                : latestPlan.Response;
+              
               if (parsedResponse) {
                 // Update trip data with the parsed response
                 setTripData({
