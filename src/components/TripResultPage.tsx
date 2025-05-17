@@ -11,6 +11,7 @@ const TripResultPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [tripData, setTripData] = useState<any>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [tripTextContent, setTripTextContent] = useState<string | null>(null);
 
   useEffect(() => {
     // Get the destination from local storage (set during form submission)
@@ -41,6 +42,13 @@ const TripResultPage = () => {
           const trip = trips[0];
           setTripData(trip);
           
+          // Handle the plan as plain text if it exists in that format
+          if (trip.plan && typeof trip.plan === 'object') {
+            if (trip.plan.textPlan) {
+              setTripTextContent(trip.plan.textPlan);
+            }
+          }
+          
           // If there's an image path, fetch the image URL
           if (trip.image_path) {
             const { data: imageData, error: imageError } = await supabase
@@ -55,11 +63,13 @@ const TripResultPage = () => {
         } else {
           // If no data yet, fallback to mock data
           setTripData(fallbackTripData);
+          setTripTextContent(fallbackTripPlan);
         }
       } catch (error) {
         console.error("Error fetching trip data:", error);
         toast.error("Failed to load trip plan");
         setTripData(fallbackTripData);
+        setTripTextContent(fallbackTripPlan);
       } finally {
         setIsLoading(false);
       }
@@ -68,24 +78,43 @@ const TripResultPage = () => {
     fetchLatestTrip();
   }, []);
 
+  // Fallback plan text
+  const fallbackTripPlan = `
+Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
+
+### Primary Itinerary
+
+**Day 1: Arrival and Settling In**
+- Morning: Arrive at Zurich Airport
+- Afternoon: Train journey to your mountain lodge
+- Evening: Relax and enjoy dinner with mountain views
+
+**Day 2: Hiking Adventure**
+- Morning: Breakfast at the lodge
+- Day: Guided hiking trail to Alpine Lake
+- Evening: Traditional Swiss dinner
+
+**Day 3: Mountain Exploration**
+- Morning: Cable car to Mountain Peak
+- Afternoon: Photography and lunch at altitude
+- Evening: Relax at the lodge spa
+
+**Day 4: Village Experience**
+- Morning: Visit to local cheese maker
+- Afternoon: Explore village and markets
+- Evening: Fondue dinner experience
+
+**Day 5: Adventure Day**
+- Full day: Mountain biking adventure
+- Evening: Farewell dinner
+`;
+
   // Fallback data when trip is not yet loaded
   const fallbackTripData = {
     destination: "Swiss Alps",
     start_date: "2023-06-10",
     end_date: "2023-06-17",
     plan: {
-      mainPlan: [
-        { day: "Day 1", activity: "Arrival and check-in at Mountain Lodge", weather: "Sunny, 22°C" },
-        { day: "Day 2", activity: "Hiking trail to Alpine Lake", weather: "Sunny, 24°C" },
-        { day: "Day 3", activity: "Cable car to Mountain Peak", weather: "Partly Cloudy, 20°C" },
-        { day: "Day 4", activity: "Visit to local village and markets", weather: "Sunny, 23°C" },
-        { day: "Day 5", activity: "Mountain biking adventure", weather: "Cloudy, 19°C" },
-      ],
-      alternativePlan: [
-        { day: "Day 2", activity: "Visit Alpine Museum", weather: "Rain, 15°C" },
-        { day: "Day 3", activity: "Spa day at Mountain Lodge", weather: "Heavy Rain, 14°C" },
-        { day: "Day 5", activity: "Indoor rock climbing center", weather: "Thunderstorm, 16°C" },
-      ],
       equipment: [
         { name: "Hiking boots", icon: "mountain" },
         { name: "Rain jacket", icon: "umbrella" },
@@ -119,6 +148,33 @@ const TripResultPage = () => {
     return `${start.toLocaleDateString('en-US', options)} - ${end.toLocaleDateString('en-US', options)}`;
   };
 
+  // Function to convert plain text with markdown-style formatting to HTML
+  const formatTripText = (text: string | null) => {
+    if (!text) return [];
+    
+    // Split text into paragraphs
+    return text.split('\n').map((line, index) => {
+      // Handle headers (###)
+      if (line.startsWith('###')) {
+        return <h3 key={index} className="text-xl font-bold mt-4 mb-2">{line.replace('###', '').trim()}</h3>;
+      }
+      // Handle subheaders (**)
+      else if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
+        return <h4 key={index} className="font-semibold mt-3 mb-1">{line.replace(/\*\*/g, '').trim()}</h4>;
+      }
+      // Handle list items (-)
+      else if (line.trim().startsWith('-')) {
+        return <li key={index} className="ml-4">{line.replace('-', '').trim()}</li>;
+      }
+      // Regular paragraph, but only if not empty
+      else if (line.trim()) {
+        return <p key={index} className="mb-2">{line}</p>;
+      }
+      // Empty line
+      return <br key={index} />;
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="py-20 px-4 flex justify-center items-center">
@@ -131,7 +187,7 @@ const TripResultPage = () => {
 
   // Format date range for display
   const dateRange = tripData ? formatDateRange(tripData.start_date, tripData.end_date) : "";
-  const plan = tripData?.plan || {};
+  const equipment = tripData?.plan?.equipment || [];
 
   return (
     <div className="py-20 px-4">
@@ -152,59 +208,31 @@ const TripResultPage = () => {
             </div>
           )}
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-            <Card className="border border-white/20 shadow-lg">
-              <CardHeader className="bg-primary/10 border-b">
-                <CardTitle className="text-primary">Main Plan</CardTitle>
-                <CardDescription>Optimized for the forecast weather</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ul className="space-y-3">
-                  {plan.mainPlan?.map((item: any, index: number) => (
-                    <li key={index} className="flex justify-between border-b pb-2 last:border-0">
-                      <div>
-                        <span className="font-semibold">{item.day}:</span> {item.activity}
-                      </div>
-                      <div className="text-sm text-gray-600">{item.weather}</div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-white/20 shadow-lg">
-              <CardHeader className="bg-secondary/10 border-b">
-                <CardTitle className="text-secondary">Alternative Plan</CardTitle>
-                <CardDescription>In case of weather changes</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <ul className="space-y-3">
-                  {plan.alternativePlan?.map((item: any, index: number) => (
-                    <li key={index} className="flex justify-between border-b pb-2 last:border-0">
-                      <div>
-                        <span className="font-semibold">{item.day}:</span> {item.activity}
-                      </div>
-                      <div className="text-sm text-gray-600">{item.weather}</div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="mb-10 prose prose-sm max-w-none">
+            {tripTextContent ? (
+              <div className="bg-white/80 p-6 rounded-lg shadow-sm">
+                {formatTripText(tripTextContent)}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500">Your personalized trip plan is being created...</p>
+            )}
           </div>
           
-          <div className="mb-10">
-            <h2 className="text-2xl font-playfair font-semibold mb-4">Recommended Equipment</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {plan.equipment?.map((item: any, index: number) => (
-                <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm">
-                  <div className="bg-primary/10 p-2 rounded-full mb-2">
-                    {getIconComponent(item.icon)}
+          {equipment.length > 0 && (
+            <div className="mb-10">
+              <h2 className="text-2xl font-playfair font-semibold mb-4">Recommended Equipment</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                {equipment.map((item: any, index: number) => (
+                  <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="bg-primary/10 p-2 rounded-full mb-2">
+                      {getIconComponent(item.icon)}
+                    </div>
+                    <span className="text-sm text-center">{item.name}</span>
                   </div>
-                  <span className="text-sm text-center">{item.name}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild variant="outline" className="w-full sm:w-auto">

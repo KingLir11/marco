@@ -57,8 +57,26 @@ const TripPlanForm = () => {
         throw new Error("Failed to send trip data");
       }
       
-      // Store the trip ID in local storage so we can fetch it on the result page
+      // Store the trip destination in local storage so we can fetch it on the result page
       localStorage.setItem("lastTripDestination", data.destination);
+      
+      // Create trip record in Supabase directly with plain text plan
+      // This will be updated later by the webhook with the actual plan
+      const { error: insertError } = await supabase
+        .from("trips")
+        .insert({
+          destination: data.destination,
+          start_date: data.startDate.toISOString().split('T')[0],
+          end_date: data.endDate.toISOString().split('T')[0],
+          style: data.style,
+          budget: data.budget[0],
+          extra_requests: data.extraRequests || null,
+          plan: { textPlan: "Loading your personalized plan..." } // Initialize with placeholder
+        });
+      
+      if (insertError) {
+        console.error("Error creating trip record:", insertError);
+      }
       
       toast.success("Trip details submitted successfully!");
       navigate("/result");
