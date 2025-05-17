@@ -5,10 +5,21 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
 
+// Define a simple trip data interface to match our simplified database schema
+interface TripData {
+  id: string;
+  created_at: string;
+  text_plan: string;
+  destination?: string;
+  start_date?: string;
+  end_date?: string;
+  style?: string;
+  budget?: number;
+}
+
 const TripResultPage = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [tripData, setTripData] = useState<any>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [tripData, setTripData] = useState<TripData | null>(null);
   const [tripTextContent, setTripTextContent] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,24 +48,12 @@ const TripResultPage = () => {
         }
 
         if (trips && trips.length > 0) {
-          const trip = trips[0];
+          const trip = trips[0] as TripData;
           setTripData(trip);
           
           // Get the text plan directly from the trip record
           if (trip.text_plan) {
             setTripTextContent(trip.text_plan);
-          }
-          
-          // If there's an image path, fetch the image URL
-          if (trip.image_path) {
-            const { data: imageData, error: imageError } = await supabase
-              .storage
-              .from("trip_images")
-              .createSignedUrl(trip.image_path, 60 * 60); // 1 hour expiry
-
-            if (!imageError && imageData) {
-              setImageUrl(imageData.signedUrl);
-            }
           }
         } else {
           // If no data yet, fallback to mock data
@@ -106,7 +105,10 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
 `;
 
   // Fallback data when trip is not yet loaded
-  const fallbackTripData = {
+  const fallbackTripData: TripData = {
+    id: "fallback-id",
+    created_at: new Date().toISOString(),
+    text_plan: fallbackTripPlan,
     destination: "Swiss Alps",
     start_date: "2023-06-10",
     end_date: "2023-06-17",
@@ -115,7 +117,9 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
   };
 
   // Format date range for display
-  const formatDateRange = (startDate: string, endDate: string) => {
+  const formatDateRange = (startDate?: string, endDate?: string) => {
+    if (!startDate || !endDate) return "";
+    
     const start = new Date(startDate);
     const end = new Date(endDate);
     
@@ -160,8 +164,10 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
     );
   }
 
-  // Format date range for display
-  const dateRange = tripData ? formatDateRange(tripData.start_date, tripData.end_date) : "";
+  // Format date range for display if trip data has start and end dates
+  const dateRange = tripData && tripData.start_date && tripData.end_date 
+    ? formatDateRange(tripData.start_date, tripData.end_date) 
+    : "";
 
   return (
     <div className="py-20 px-4">
@@ -171,16 +177,6 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
             <h1 className="text-4xl font-bold font-playfair mb-2">{tripData?.destination}</h1>
             <p className="text-gray-600">{dateRange}</p>
           </header>
-          
-          {imageUrl && (
-            <div className="mb-8">
-              <img 
-                src={imageUrl} 
-                alt={`${tripData?.destination} view`}
-                className="w-full h-64 object-cover rounded-lg"
-              />
-            </div>
-          )}
           
           <div className="mb-10 prose prose-sm max-w-none">
             {tripTextContent ? (
