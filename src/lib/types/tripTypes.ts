@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 export interface DailyActivity {
   day: string;
   activity: string;
@@ -25,7 +27,24 @@ export interface TripPlanRecord {
   destination: string;
   start_date: string;
   end_date: string;
-  trip_plan: string; // JSON string of trip data
+  trip_plan: string | any; // Updated to accept both string and parsed JSON
   created_at: string;
   user_id?: string;
+}
+
+// Helper type for parsed trip plan data from JSON
+export interface ParsedTripPlan {
+  mainPlan?: Array<{
+    day: string;
+    activity: string;
+    weather: string;
+  }>;
+  alternativePlan?: Array<{
+    day: string;
+    activity: string;
+    weather: string;
+  }>;
+  equipment?: Array<{
+    name: string;
+  }>;
 }

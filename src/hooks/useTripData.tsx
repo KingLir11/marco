@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { TripData, TripPlanRecord } from '@/lib/types/tripTypes';
+import { TripData, TripPlanRecord, ParsedTripPlan } from '@/lib/types/tripTypes';
 import { Mountain, Map, Compass, Sun, Umbrella, Wind } from 'lucide-react';
 import React from 'react';
 
@@ -33,32 +34,45 @@ const mockTripData: TripData = {
 // Convert Supabase trip record to TripData format
 const convertToTripData = (record: TripPlanRecord): TripData => {
   try {
-    // Parse JSON string from trip_plan field
-    const tripPlanData = JSON.parse(record.trip_plan);
+    // Parse JSON string from trip_plan field if it's a string
+    let tripPlanData: ParsedTripPlan = {};
+    
+    if (typeof record.trip_plan === 'string') {
+      tripPlanData = JSON.parse(record.trip_plan);
+    } else if (typeof record.trip_plan === 'object') {
+      tripPlanData = record.trip_plan;
+    }
     
     // Format date range
     const startDate = new Date(record.start_date);
     const endDate = new Date(record.end_date);
     const dateRange = `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
     
-    // If the parsed data is already in TripData format, use it
-    if (tripPlanData.mainPlan && tripPlanData.alternativePlan && tripPlanData.equipment) {
-      return {
-        id: record.id,
-        destination: record.destination,
-        dateRange,
-        ...tripPlanData
-      };
-    }
+    // Ensure all required fields are present with proper validation
+    const mainPlan = tripPlanData.mainPlan?.map(item => ({
+      day: item.day || "Unknown Day",
+      activity: item.activity || "No activity planned",
+      weather: item.weather || "Weather data unavailable"
+    })) || mockTripData.mainPlan;
     
-    // Otherwise, use a simplified mock structure
+    const alternativePlan = tripPlanData.alternativePlan?.map(item => ({
+      day: item.day || "Unknown Day",
+      activity: item.activity || "No activity planned",
+      weather: item.weather || "Weather data unavailable"
+    })) || mockTripData.alternativePlan;
+    
+    const equipment = tripPlanData.equipment?.map(item => ({
+      name: item.name || "Unnamed equipment"
+    })) || mockTripData.equipment;
+    
+    // Return properly formatted TripData
     return {
       id: record.id,
       destination: record.destination,
       dateRange,
-      mainPlan: mockTripData.mainPlan,
-      alternativePlan: mockTripData.alternativePlan,
-      equipment: mockTripData.equipment
+      mainPlan,
+      alternativePlan,
+      equipment
     };
   } catch (error) {
     console.error("Error converting trip plan data:", error);
@@ -90,7 +104,7 @@ export function useTripData(tripId?: string) {
           query = query.order('created_at', { ascending: false }).limit(1);
         }
         
-        const { data, error } = await query as { data: TripPlanRecord[] | null, error: Error | null };
+        const { data, error } = await query;
         
         if (error) throw error;
         

@@ -41,7 +41,22 @@ const MyTripsPage = () => {
 
         if (error) throw error;
         
-        setTrips(data || []);
+        if (data) {
+          // Convert the data to ensure it matches our TripPlanRecord type
+          const formattedTrips: TripPlanRecord[] = data.map(trip => ({
+            id: trip.id,
+            destination: trip.destination,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+            trip_plan: trip.trip_plan,
+            created_at: trip.created_at,
+            user_id: trip.user_id || undefined
+          }));
+          
+          setTrips(formattedTrips);
+        } else {
+          setTrips([]);
+        }
       } catch (error) {
         console.error("Error fetching trips:", error);
         toast.error("Failed to load trips. Please try again later.");

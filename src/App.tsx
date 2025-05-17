@@ -22,6 +22,7 @@ const App = () => (
           <Route path="/" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/result" element={<ResultPage />} />
+          <Route path="/result/:tripId" element={<ResultPage />} />
           <Route path="/my-trips" element={<MyTrips />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
