@@ -16,12 +16,16 @@ export function useTripFormSubmission() {
   const longWaitTimerRef = useRef<number | null>(null);
   const notificationShownRef = useRef(false);
   const submittedIdRef = useRef<string | null>(null);
+  const navigationAttemptedRef = useRef(false);
   
   // Memoize the handleNewImage function to avoid recreating it on every render
   const handleNewImage = useCallback((data: ImagePlanData) => {
+    if (navigationAttemptedRef.current) return; // Prevent multiple navigation attempts
+    
     console.log("New trip plan received in TripPlanForm!", data);
     toast.success("Your trip plan is ready!");
     setLoading(false);
+    navigationAttemptedRef.current = true;
     
     // Clear any pending timers
     if (navigationTimerRef.current) {
@@ -77,25 +81,18 @@ export function useTripFormSubmission() {
     
     console.log("Setting fallback timeouts for navigation");
     
-    // First warning after 2 minutes
+    // Just one warning after 1 minute
     longWaitTimerRef.current = window.setTimeout(() => {
-      if (loading) {
-        toast.info("Still working on your trip plan. Please wait a moment...");
-        
-        // Set another timeout for another 2 minutes
-        longWaitTimerRef.current = window.setTimeout(() => {
-          if (loading) {
-            setLoading(false);
-            toast.error("It's taking longer than expected. Please try again.");
-          }
-        }, 120000);
+      if (loading && !navigationAttemptedRef.current) {
+        toast.info("Still working on your trip plan. This may take a bit longer...");
       }
-    }, 120000);
+    }, 60000);
 
     // Force navigation after 30 seconds if we haven't received a response
     navigationTimerRef.current = window.setTimeout(() => {
-      if (loading) {
+      if (loading && !navigationAttemptedRef.current) {
         console.log("Forcing navigation to result page after 30 second timeout");
+        navigationAttemptedRef.current = true;
         setLoading(false);
         navigate("/result");
       }
@@ -115,6 +112,9 @@ export function useTripFormSubmission() {
   }, [submittedAt, loading, navigate]);
 
   const onSubmit = async (data: TripFormData) => {
+    // Reset navigation attempt tracking
+    navigationAttemptedRef.current = false;
+    
     setLoading(true);
     const currentTime = new Date();
     setSubmittedAt(currentTime);
@@ -151,7 +151,7 @@ export function useTripFormSubmission() {
       }
       
       console.log("Webhook response status:", response.status);
-      toast.success("Trip details submitted successfully! Creating your plan...");
+      toast.success("Trip details submitted! Creating your plan...");
       
       // We'll wait for the realtime update or the timeout to navigate
     } catch (error) {

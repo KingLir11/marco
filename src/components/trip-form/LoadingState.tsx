@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ export const LoadingState: React.FC = () => {
   const intervalRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
   const navigate = useNavigate();
+  const notificationShownRef = useRef(false);
   
   // Show different messages over time to keep the user engaged
   useEffect(() => {
@@ -36,15 +36,21 @@ export const LoadingState: React.FC = () => {
       setMessage(messages[index]);
     }, 4000);
     
-    // Show manual button after 15 seconds as a fallback
+    // Show manual button after 10 seconds as a fallback
     const buttonTimeout = setTimeout(() => {
       setShowManualButton(true);
-      toast.info("You can proceed to view results now or wait for automatic redirection");
-    }, 15000);
+    }, 10000);
 
     // Track elapsed time
     timerRef.current = window.setInterval(() => {
-      setElapsedSeconds(prev => prev + 1);
+      setElapsedSeconds(prev => {
+        // Show a notification after 20 seconds if not shown yet
+        if (prev === 20 && !notificationShownRef.current) {
+          notificationShownRef.current = true;
+          toast.info("You can proceed to view results or wait for automatic redirection");
+        }
+        return prev + 1;
+      });
     }, 1000);
     
     // Clean up on unmount
@@ -66,7 +72,6 @@ export const LoadingState: React.FC = () => {
   // Manual navigation handler
   const handleManualNavigate = () => {
     console.log("Manual navigation to result page requested");
-    toast.info("Navigating to results page");
     navigate("/result");
   };
   
@@ -85,7 +90,7 @@ export const LoadingState: React.FC = () => {
         <p className="text-lg font-medium">{message}</p>
         <p className="text-sm text-gray-500 mt-2">
           {elapsedSeconds < 30 
-            ? "This may take up to a minute or two" 
+            ? "This may take up to a minute" 
             : "Taking longer than expected. You may proceed to results"}
         </p>
       </div>
@@ -103,7 +108,6 @@ export const LoadingState: React.FC = () => {
           <Button 
             onClick={handleManualNavigate}
             variant="secondary"
-            className="animate-pulse"
           >
             View Trip Results
           </Button>

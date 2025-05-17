@@ -21,35 +21,17 @@ const ResultPage = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [forceStay, setForceStay] = useState(false); // New state to prevent redirect
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
   
-  // Check if we have any trip data on mount
+  // Check if we have any trip data on mount - but only once
   useEffect(() => {
+    if (initialCheckDone) return;
+    
     const checkForTripData = async () => {
       try {
         setIsLoading(true);
         console.log("ResultPage: Checking for trip data on mount");
 
-        // Add a detailed log of all rows to help debug
-        const { data: allData, error: debugError } = await supabase
-          .from('URL+Response')
-          .select('*');
-          
-        if (debugError) {
-          console.error("Debug error fetching all data:", debugError);
-        } else {
-          console.log("All data in URL+Response table:", allData);
-          console.log("Total row count:", allData?.length || 0);
-          
-          // If we have any data, don't redirect regardless of count query
-          if (allData && allData.length > 0) {
-            console.log("ResultPage: Data found during debug check, preventing redirect");
-            setForceStay(true);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
-        // The original count check, kept as fallback
         const { count, error } = await supabase
           .from('URL+Response')
           .select('*', { count: 'exact', head: true });
@@ -75,11 +57,12 @@ const ResultPage = () => {
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         setIsLoading(false);
+        setInitialCheckDone(true);
       }
     };
     
     checkForTripData();
-  }, [navigate, forceStay]);
+  }, [navigate, forceStay, initialCheckDone]);
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();

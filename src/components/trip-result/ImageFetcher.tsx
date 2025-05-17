@@ -20,6 +20,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [redirectAttempted, setRedirectAttempted] = useState(false);
   
   // Handle new images from Supabase Realtime
   const handleNewImage = React.useCallback((data: ImagePlanData) => {
@@ -48,6 +49,9 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
   
   // Fetch latest image on initial load
   useEffect(() => {
+    // Skip if we've already attempted a fetch
+    if (hasAttemptedFetch) return;
+    
     console.log("ResultPage: Fetching latest image...");
     
     const fetchLatestImage = async () => {
@@ -55,8 +59,10 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
         setLoading(true);
         setHasAttemptedFetch(true);
         
-        // Debug - log all rows in the table
-        await debugLogAllRows();
+        // Debug - log all rows in the table (only in development)
+        if (process.env.NODE_ENV === 'development') {
+          await debugLogAllRows();
+        }
         
         const { data, error } = await supabase
           .from('URL+Response')
@@ -89,9 +95,10 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
               .from('URL+Response')
               .select('*', { count: 'exact', head: true });
               
-            if (count === 0) {
+            if (count === 0 && !redirectAttempted) {
               console.log("ResultPage: No rows in URL+Response table, redirecting to plan page");
               toast.error("No trip plan found. Please create a new trip plan.");
+              setRedirectAttempted(true);
               setTimeout(() => navigate("/plan"), 1500);
             }
           }
@@ -106,7 +113,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
     };
     
     fetchLatestImage();
-  }, [navigate, onImageLoad, onRefresh]);
+  }, [navigate, onImageLoad, onRefresh, hasAttemptedFetch, redirectAttempted]);
 
   // Retry loading the image
   const handleRetry = () => {

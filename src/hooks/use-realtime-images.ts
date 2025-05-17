@@ -17,6 +17,7 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
   const channelRef = useRef<any>(null);
   const toastShownRef = useRef(false);
   const previousCallbackRef = useRef(onNewImage);
+  const errorReportedRef = useRef(false);
   
   // Setup or update the Supabase realtime connection
   const setupChannel = useCallback(() => {
@@ -57,13 +58,17 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
         console.log("Supabase channel status:", status);
         setConnected(status === 'SUBSCRIBED');
         
-        if (status === 'SUBSCRIBED' && !toastShownRef.current) {
-          toast.success("Connected to real-time updates!");
+        if (status === 'SUBSCRIBED' && !toastShownRef.current && onNewImage) {
+          // Only show the connection success message for active listeners
+          // and only once per session
+          console.log("Successfully connected to real-time updates");
           toastShownRef.current = true;
-        } else if (status === 'TIMED_OUT') {
+        } else if (status === 'TIMED_OUT' && !errorReportedRef.current) {
           toast.error("Connection timed out. Please refresh the page.");
-        } else if (status === 'CHANNEL_ERROR') {
+          errorReportedRef.current = true;
+        } else if (status === 'CHANNEL_ERROR' && !errorReportedRef.current) {
           toast.error("Error connecting to real-time updates.");
+          errorReportedRef.current = true;
         }
       });
       
@@ -90,7 +95,6 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
-        toastShownRef.current = false;
       }
     };
   }, [setupChannel, onNewImage]); // Depend on both setupChannel and onNewImage
