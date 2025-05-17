@@ -44,32 +44,35 @@ export function useTripFormSubmission() {
   // Only set up the realtime listener if we've submitted the form
   const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
   
+  // Log connection status when it changes
   useEffect(() => {
-    if (submittedAt && connected && !notificationShownRef.current) {
+    if (submittedAt && connected) {
       console.log("Connected to Supabase Realtime and waiting for new data...");
-      toast.info("Waiting for your trip plan to be generated...");
-      notificationShownRef.current = true;
+      if (!notificationShownRef.current) {
+        toast.info("Waiting for your trip plan to be generated...");
+        notificationShownRef.current = true;
+      }
     }
     
     return () => {
       // Reset notification state when component unmounts
       notificationShownRef.current = false;
-      
-      // Clean up timers on unmount
-      if (navigationTimerRef.current) {
-        window.clearTimeout(navigationTimerRef.current);
-        navigationTimerRef.current = null;
-      }
-      
-      if (longWaitTimerRef.current) {
-        window.clearTimeout(longWaitTimerRef.current);
-        longWaitTimerRef.current = null;
-      }
     };
   }, [submittedAt, connected]);
 
   // Set a fallback timeout in case we don't receive a webhook response
   useEffect(() => {
+    // Clean up any existing timers
+    if (navigationTimerRef.current) {
+      window.clearTimeout(navigationTimerRef.current);
+      navigationTimerRef.current = null;
+    }
+    
+    if (longWaitTimerRef.current) {
+      window.clearTimeout(longWaitTimerRef.current);
+      longWaitTimerRef.current = null;
+    }
+    
     if (!submittedAt || !loading) return;
     
     console.log("Setting fallback timeouts for navigation");
@@ -101,10 +104,12 @@ export function useTripFormSubmission() {
     return () => {
       if (navigationTimerRef.current) {
         window.clearTimeout(navigationTimerRef.current);
+        navigationTimerRef.current = null;
       }
       
       if (longWaitTimerRef.current) {
         window.clearTimeout(longWaitTimerRef.current);
+        longWaitTimerRef.current = null;
       }
     };
   }, [submittedAt, loading, navigate]);

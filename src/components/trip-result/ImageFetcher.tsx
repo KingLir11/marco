@@ -22,7 +22,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   
   // Handle new images from Supabase Realtime
-  const handleNewImage = (data: ImagePlanData) => {
+  const handleNewImage = React.useCallback((data: ImagePlanData) => {
     console.log("ResultPage: New trip plan received via realtime!", data);
     toast.success("New trip plan received!");
     
@@ -37,7 +37,7 @@ const ImageFetcher = ({ onImageLoad, onRefresh }: ImageFetcherProps) => {
     } else {
       console.warn("ResultPage: Trip plan received but no image URL was provided");
     }
-  };
+  }, [onImageLoad, onRefresh]);
   
   // Set up the realtime listener
   const { connected } = useRealtimeImages(handleNewImage);

@@ -1,11 +1,15 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/sonner";
 
 export const LoadingState: React.FC = () => {
   const [message, setMessage] = useState("Matching your route with the weather forecast...");
   const [showManualButton, setShowManualButton] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const timerRef = useRef<number | null>(null);
   const navigate = useNavigate();
   
   // Show different messages over time to keep the user engaged
@@ -32,10 +36,16 @@ export const LoadingState: React.FC = () => {
       setMessage(messages[index]);
     }, 4000);
     
-    // Show manual button after 20 seconds as a fallback
+    // Show manual button after 15 seconds as a fallback
     const buttonTimeout = setTimeout(() => {
       setShowManualButton(true);
-    }, 20000);
+      toast.info("You can proceed to view results now or wait for automatic redirection");
+    }, 15000);
+
+    // Track elapsed time
+    timerRef.current = window.setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
     
     // Clean up on unmount
     return () => {
@@ -43,6 +53,12 @@ export const LoadingState: React.FC = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
       clearTimeout(buttonTimeout);
     };
   }, []);
@@ -50,6 +66,7 @@ export const LoadingState: React.FC = () => {
   // Manual navigation handler
   const handleManualNavigate = () => {
     console.log("Manual navigation to result page requested");
+    toast.info("Navigating to results page");
     navigate("/result");
   };
   
@@ -66,7 +83,11 @@ export const LoadingState: React.FC = () => {
       
       <div className="text-center max-w-md">
         <p className="text-lg font-medium">{message}</p>
-        <p className="text-sm text-gray-500 mt-2">This may take up to a minute or two</p>
+        <p className="text-sm text-gray-500 mt-2">
+          {elapsedSeconds < 30 
+            ? "This may take up to a minute or two" 
+            : "Taking longer than expected. You may proceed to results"}
+        </p>
       </div>
       
       {/* Animated progress dots */}
@@ -87,7 +108,9 @@ export const LoadingState: React.FC = () => {
             View Trip Results
           </Button>
           <p className="text-xs text-gray-500 mt-2">
-            Taking too long? Click to view your trip results.
+            {elapsedSeconds < 30
+              ? "Want to check if results are ready?"
+              : "Taking too long? Click to view your trip results."}
           </p>
         </div>
       )}
