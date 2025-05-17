@@ -76,7 +76,7 @@ export const useTripData = () => {
           return;
         }
 
-        // Using proper typing to avoid deep instantiation errors
+        // Using explicit type casting to avoid deep instantiation errors
         const { data, error } = await supabase
           .from("trips")
           .select("*")
@@ -89,6 +89,7 @@ export const useTripData = () => {
         }
 
         if (data && data.length > 0) {
+          // Explicitly cast the data to our TripData interface
           const trip = data[0] as unknown as TripData;
           setTripData(trip);
           
