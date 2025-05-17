@@ -1,6 +1,6 @@
 
 import { TripPlanRecord, ParsedTripPlan, TripData } from '@/lib/types/tripTypes';
-import { Mountain, Map, Compass, Sun, Umbrella, Wind } from 'lucide-react';
+import { getIconForEquipment } from './equipmentIcons';
 import React from 'react';
 
 // Mock data for when we're in development or if data fetching fails
@@ -118,20 +118,11 @@ export const convertToTripData = (record: TripPlanRecord): TripData => {
  * Add icon components to equipment items
  */
 export const enhanceTripDataWithIcons = (tripData: TripData): TripData => {
-  const iconMap: Record<string, React.ReactNode> = {
-    "Hiking boots": <Mountain className="h-5 w-5" />,
-    "Rain jacket": <Umbrella className="h-5 w-5" />,
-    "Sun protection": <Sun className="h-5 w-5" />,
-    "Trail map": <Map className="h-5 w-5" />,
-    "Water bottle": <Wind className="h-5 w-5" />,
-    "Compass": <Compass className="h-5 w-5" />
-  };
-  
   return {
     ...tripData,
     equipment: tripData.equipment.map(item => ({
       ...item,
-      icon: iconMap[item.name] || <Map className="h-5 w-5" />
+      icon: getIconForEquipment(item.name)
     }))
   };
 };
