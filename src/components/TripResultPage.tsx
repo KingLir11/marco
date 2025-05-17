@@ -35,7 +35,7 @@ const TripResultPage = () => {
           return;
         }
 
-        // Fetch the latest trip for this destination
+        // Explicitly specify the type for trips when fetching from Supabase
         const { data: trips, error } = await supabase
           .from("trips")
           .select("*")
