@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Umbrella, Sun, Wind, Mountain, Map, Route, Compass } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Umbrella, Sun, Wind, Mountain, Map, Compass } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
@@ -42,11 +42,9 @@ const TripResultPage = () => {
           const trip = trips[0];
           setTripData(trip);
           
-          // Handle the plan as plain text if it exists in that format
-          if (trip.plan && typeof trip.plan === 'object') {
-            if (trip.plan.textPlan) {
-              setTripTextContent(trip.plan.textPlan);
-            }
+          // Get the text plan directly from the trip record
+          if (trip.text_plan) {
+            setTripTextContent(trip.text_plan);
           }
           
           // If there's an image path, fetch the image URL
@@ -114,16 +112,8 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
     destination: "Swiss Alps",
     start_date: "2023-06-10",
     end_date: "2023-06-17",
-    plan: {
-      equipment: [
-        { name: "Hiking boots", icon: "mountain" },
-        { name: "Rain jacket", icon: "umbrella" },
-        { name: "Sun protection", icon: "sun" },
-        { name: "Trail map", icon: "map" },
-        { name: "Water bottle", icon: "wind" },
-        { name: "Compass", icon: "compass" },
-      ]
-    }
+    style: "nature",
+    budget: 500
   };
 
   // Map icon strings to Lucide React components
@@ -135,7 +125,6 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
       case "map": return <Map className="h-5 w-5" />;
       case "wind": return <Wind className="h-5 w-5" />;
       case "compass": return <Compass className="h-5 w-5" />;
-      case "route": return <Route className="h-5 w-5" />;
       default: return <Mountain className="h-5 w-5" />;
     }
   };
@@ -187,7 +176,6 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
 
   // Format date range for display
   const dateRange = tripData ? formatDateRange(tripData.start_date, tripData.end_date) : "";
-  const equipment = tripData?.plan?.equipment || [];
 
   return (
     <div className="py-20 px-4">
@@ -217,22 +205,6 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
               <p className="text-center text-gray-500">Your personalized trip plan is being created...</p>
             )}
           </div>
-          
-          {equipment.length > 0 && (
-            <div className="mb-10">
-              <h2 className="text-2xl font-playfair font-semibold mb-4">Recommended Equipment</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-                {equipment.map((item: any, index: number) => (
-                  <div key={index} className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg shadow-sm">
-                    <div className="bg-primary/10 p-2 rounded-full mb-2">
-                      {getIconComponent(item.icon)}
-                    </div>
-                    <span className="text-sm text-center">{item.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild variant="outline" className="w-full sm:w-auto">

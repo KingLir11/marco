@@ -60,7 +60,7 @@ const TripPlanForm = () => {
       // Store the trip destination in local storage so we can fetch it on the result page
       localStorage.setItem("lastTripDestination", data.destination);
       
-      // Create trip record in Supabase directly with plain text plan
+      // Create trip record in Supabase directly with plain text placeholder
       // This will be updated later by the webhook with the actual plan
       const { error: insertError } = await supabase
         .from("trips")
@@ -71,7 +71,7 @@ const TripPlanForm = () => {
           style: data.style,
           budget: data.budget[0],
           extra_requests: data.extraRequests || null,
-          plan: { textPlan: "Loading your personalized plan..." } // Initialize with placeholder
+          text_plan: "Loading your personalized plan..." // Initialize with placeholder
         });
       
       if (insertError) {

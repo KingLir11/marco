@@ -18,10 +18,9 @@ export type Database = {
           extra_requests: string | null
           id: string
           image_path: string | null
-          plan: Json
           start_date: string
           style: string
-          updated_at: string
+          text_plan: string
         }
         Insert: {
           budget: number
@@ -31,10 +30,9 @@ export type Database = {
           extra_requests?: string | null
           id?: string
           image_path?: string | null
-          plan: Json
           start_date: string
           style: string
-          updated_at?: string
+          text_plan: string
         }
         Update: {
           budget?: number
@@ -44,10 +42,9 @@ export type Database = {
           extra_requests?: string | null
           id?: string
           image_path?: string | null
-          plan?: Json
           start_date?: string
           style?: string
-          updated_at?: string
+          text_plan?: string
         }
         Relationships: []
       }
