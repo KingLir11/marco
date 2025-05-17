@@ -16,87 +16,97 @@ export function useTripFormSubmission() {
   const longWaitTimerRef = useRef<number | null>(null);
   const notificationShownRef = useRef(false);
   const submittedIdRef = useRef<string | null>(null);
-  const navigationAttemptedRef = useRef(false);
+  const hasRedirectedRef = useRef(false);
   
   // Memoize the handleNewImage function to avoid recreating it on every render
   const handleNewImage = useCallback((data: ImagePlanData) => {
-    if (navigationAttemptedRef.current) return; // Prevent multiple navigation attempts
+    console.log("TripFormSubmission: New trip plan received!", data);
     
-    console.log("New trip plan received in TripPlanForm!", data);
-    toast.success("Your trip plan is ready!");
-    setLoading(false);
-    navigationAttemptedRef.current = true;
-    
-    // Clear any pending timers
-    if (navigationTimerRef.current) {
-      window.clearTimeout(navigationTimerRef.current);
-      navigationTimerRef.current = null;
+    if (loading && !hasRedirectedRef.current) {
+      toast.success("Your trip plan is ready!");
+      setLoading(false);
+      hasRedirectedRef.current = true;
+      
+      // Clear any pending timers
+      if (navigationTimerRef.current) {
+        window.clearTimeout(navigationTimerRef.current);
+        navigationTimerRef.current = null;
+      }
+      
+      if (longWaitTimerRef.current) {
+        window.clearTimeout(longWaitTimerRef.current);
+        longWaitTimerRef.current = null;
+      }
+      
+      // Add a small delay before navigation to ensure state updates are processed
+      setTimeout(() => {
+        console.log("TripFormSubmission: Navigating to result page...");
+        navigate("/result");
+      }, 500);
     }
-    
-    if (longWaitTimerRef.current) {
-      window.clearTimeout(longWaitTimerRef.current);
-      longWaitTimerRef.current = null;
-    }
-    
-    // Add a small delay before navigation to ensure state updates are processed
-    setTimeout(() => {
-      console.log("Navigating to result page...");
-      navigate("/result");
-    }, 500);
-  }, [navigate]);
+  }, [loading, navigate]);
   
   // Only set up the realtime listener if we've submitted the form
   const { connected } = useRealtimeImages(submittedAt ? handleNewImage : undefined);
   
-  // Log connection status when it changes
   useEffect(() => {
-    if (submittedAt && connected) {
-      console.log("Connected to Supabase Realtime and waiting for new data...");
-      if (!notificationShownRef.current) {
-        toast.info("Waiting for your trip plan to be generated...");
-        notificationShownRef.current = true;
-      }
+    if (submittedAt && connected && !notificationShownRef.current) {
+      console.log("TripFormSubmission: Connected to Supabase Realtime and waiting for new data...");
+      toast.info("Waiting for your trip plan to be generated...");
+      notificationShownRef.current = true;
     }
     
     return () => {
       // Reset notification state when component unmounts
       notificationShownRef.current = false;
+      hasRedirectedRef.current = false;
+      
+      // Clean up timers on unmount
+      if (navigationTimerRef.current) {
+        window.clearTimeout(navigationTimerRef.current);
+        navigationTimerRef.current = null;
+      }
+      
+      if (longWaitTimerRef.current) {
+        window.clearTimeout(longWaitTimerRef.current);
+        longWaitTimerRef.current = null;
+      }
     };
   }, [submittedAt, connected]);
 
   // Set a fallback timeout in case we don't receive a webhook response
   useEffect(() => {
-    // Clean up any existing timers
-    if (navigationTimerRef.current) {
-      window.clearTimeout(navigationTimerRef.current);
-      navigationTimerRef.current = null;
-    }
-    
-    if (longWaitTimerRef.current) {
-      window.clearTimeout(longWaitTimerRef.current);
-      longWaitTimerRef.current = null;
-    }
-    
     if (!submittedAt || !loading) return;
     
-    console.log("Setting fallback timeouts for navigation");
+    console.log("TripFormSubmission: Setting fallback timeouts for navigation");
     
-    // Just one warning after 1 minute
+    // First warning after 2 minutes
     longWaitTimerRef.current = window.setTimeout(() => {
-      if (loading && !navigationAttemptedRef.current) {
-        toast.info("Still working on your trip plan. This may take a bit longer...");
+      if (loading && !hasRedirectedRef.current) {
+        toast.info("Still working on your trip plan. Please wait a moment...", {
+          duration: 10000,
+        });
+        
+        // Set another timeout for another 2 minutes
+        longWaitTimerRef.current = window.setTimeout(() => {
+          if (loading && !hasRedirectedRef.current) {
+            setLoading(false);
+            toast.error("It's taking longer than expected. Please try again.");
+          }
+        }, 120000);
       }
-    }, 60000);
+    }, 60000); // Reduced from 120000 to 60000 (1 minute) for first warning
 
-    // Force navigation after 30 seconds if we haven't received a response
+    // Force navigation after 15 seconds if we haven't received a response
     navigationTimerRef.current = window.setTimeout(() => {
-      if (loading && !navigationAttemptedRef.current) {
-        console.log("Forcing navigation to result page after 30 second timeout");
-        navigationAttemptedRef.current = true;
+      if (loading && !hasRedirectedRef.current) {
+        console.log("TripFormSubmission: Forcing navigation to result page after timeout");
+        toast.info("Moving to results page to check for your trip plan...");
         setLoading(false);
+        hasRedirectedRef.current = true;
         navigate("/result");
       }
-    }, 30000);
+    }, 15000); // Reduced from 30000 to 15000 (15 seconds)
 
     return () => {
       if (navigationTimerRef.current) {
@@ -112,13 +122,11 @@ export function useTripFormSubmission() {
   }, [submittedAt, loading, navigate]);
 
   const onSubmit = async (data: TripFormData) => {
-    // Reset navigation attempt tracking
-    navigationAttemptedRef.current = false;
-    
     setLoading(true);
     const currentTime = new Date();
     setSubmittedAt(currentTime);
     notificationShownRef.current = false;
+    hasRedirectedRef.current = false;
     
     try {
       // Generate a random ID suitable for Supabase int8 type
@@ -135,7 +143,7 @@ export function useTripFormSubmission() {
         submittedAt: currentTime.toISOString() // Add submission timestamp
       };
       
-      console.log("Sending form data to webhook with ID:", supabaseId);
+      console.log("TripFormSubmission: Sending form data to webhook with ID:", supabaseId);
       
       // Send data to the webhook
       const response = await fetch(WEBHOOK_URL, {
@@ -150,12 +158,12 @@ export function useTripFormSubmission() {
         throw new Error(`Failed to send trip data: ${response.status} ${response.statusText}`);
       }
       
-      console.log("Webhook response status:", response.status);
-      toast.success("Trip details submitted! Creating your plan...");
+      console.log("TripFormSubmission: Webhook response status:", response.status);
+      toast.success("Trip details submitted successfully! Creating your plan...");
       
       // We'll wait for the realtime update or the timeout to navigate
     } catch (error) {
-      console.error("Error submitting trip data:", error);
+      console.error("TripFormSubmission: Error submitting trip data:", error);
       toast.error(`Failed to submit trip data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setLoading(false);
       setSubmittedAt(null);

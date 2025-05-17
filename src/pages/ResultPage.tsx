@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import TripResultPage from "@/components/TripResultPage";
 import BackgroundImage from "@/components/trip-result/BackgroundImage";
 import ImageFetcher from "@/components/trip-result/ImageFetcher";
@@ -8,61 +7,18 @@ import ResultPageLayout from "@/components/trip-result/ResultPageLayout";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useRealtimeImages } from "@/hooks/use-realtime-images";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { RefreshCw, ArrowRight } from "lucide-react"; // Added ArrowRight import
+import { Link, useNavigate } from "react-router-dom"; // Added useNavigate
 import { toast } from "@/components/ui/sonner";
+import { getLatestTripImagePlan } from "@/services/tripImageService";
 
 const ResultPage = () => {
   const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Key to force component refresh
+  const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [forceStay, setForceStay] = useState(false); // New state to prevent redirect
   const [initialCheckDone, setInitialCheckDone] = useState(false);
-  
-  // Check if we have any trip data on mount - but only once
-  useEffect(() => {
-    if (initialCheckDone) return;
-    
-    const checkForTripData = async () => {
-      try {
-        setIsLoading(true);
-        console.log("ResultPage: Checking for trip data on mount");
-
-        const { count, error } = await supabase
-          .from('URL+Response')
-          .select('*', { count: 'exact', head: true });
-          
-        if (error) {
-          console.error("Error checking for trip data:", error);
-          setError(`Database error: ${error.message}`);
-          return;
-        }
-        
-        console.log("ResultPage: Trip data count from query:", count);
-        
-        if (count === 0 && !forceStay) {
-          // Only redirect if we really have zero records AND we haven't set forceStay
-          console.log("ResultPage: No trip data found, redirecting to plan page");
-          toast.error("No trip plan found. Please create a new trip.");
-          navigate("/plan");
-        } else {
-          console.log("ResultPage: Trip data found, count:", count);
-        }
-      } catch (err) {
-        console.error("Error in checkForTripData:", err);
-        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
-        setIsLoading(false);
-        setInitialCheckDone(true);
-      }
-    };
-    
-    checkForTripData();
-  }, [navigate, forceStay, initialCheckDone]);
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();
@@ -70,6 +26,36 @@ const ResultPage = () => {
   useEffect(() => {
     console.log("ResultPage: Realtime connection status:", connected ? "Connected" : "Disconnected");
   }, [connected]);
+
+  // Initial check for data
+  useEffect(() => {
+    const checkForData = async () => {
+      try {
+        console.log("ResultPage: Checking for existing trip data...");
+        const latestPlan = await getLatestTripImagePlan();
+        
+        if (!latestPlan) {
+          console.log("ResultPage: No trip data found, redirecting to plan page");
+          toast.error("No trip plan found. Please create a new trip plan.", {
+            duration: 5000,
+          });
+          setTimeout(() => navigate("/plan"), 1000);
+        } else {
+          console.log("ResultPage: Found trip data", latestPlan);
+          if (latestPlan["Image URL"]) {
+            setBackgroundImage(latestPlan["Image URL"]);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking for trip data:", err);
+        setError("Failed to load trip data. Please try again.");
+      } finally {
+        setInitialCheckDone(true);
+      }
+    };
+    
+    checkForData();
+  }, [navigate]);
   
   // Handler for when a new image is loaded
   const handleImageLoad = (imageURL: string) => {
@@ -82,6 +68,7 @@ const ResultPage = () => {
   const handleRefresh = () => {
     console.log("ResultPage: Refreshing trip result content");
     setRefreshKey(prevKey => prevKey + 1);
+    setError(null);
   };
 
   // Manual retry function
@@ -92,18 +79,13 @@ const ResultPage = () => {
     setError(null);
   };
 
-  // Force stay on this page even if no data found initially
-  const handleForceStay = () => {
-    setForceStay(true);
-    setError(null);
-    handleRetry();
-    toast.info("Staying on results page. Refreshing data...");
-  };
-
-  if (isLoading) {
+  if (!initialCheckDone) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">Checking for trip data...</p>
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+          <p className="mt-4">Loading trip data...</p>
+        </div>
       </div>
     );
   }
@@ -134,11 +116,11 @@ const ResultPage = () => {
                 <RefreshCw className="h-4 w-4" />
                 Retry Loading
               </Button>
-              <Button onClick={handleForceStay} variant="secondary" className="gap-2">
-                Stay on Results Page
-              </Button>
               <Button asChild>
-                <Link to="/plan">Create New Trip Plan</Link>
+                <Link to="/plan" className="gap-2">
+                  <ArrowRight className="h-4 w-4" />
+                  Create New Trip Plan
+                </Link>
               </Button>
             </div>
           </div>

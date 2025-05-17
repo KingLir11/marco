@@ -16,78 +16,58 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
   const [connected, setConnected] = useState(false);
   const channelRef = useRef<any>(null);
   const toastShownRef = useRef(false);
-  const previousCallbackRef = useRef(onNewImage);
-  const errorReportedRef = useRef(false);
   
-  // Setup or update the Supabase realtime connection
+  // Set up the Supabase realtime connection - moved to useCallback to avoid stale closures
   const setupChannel = useCallback(() => {
-    console.log("Setting up Realtime listener for 'URL+Response' table, callback present:", !!onNewImage);
+    console.log("Setting up Realtime listener for 'URL+Response' table");
     
-    // Clean up any existing channel before creating a new one
-    if (channelRef.current) {
-      console.log("Removing previous channel subscription");
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-    
-    // Create a new channel with the current callback
-    const channel = supabase
-      .channel(CHANNEL_NAME)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'URL+Response'
-        },
-        (payload) => {
-          console.log("New trip plan received!", payload);
-          
-          if (onNewImage && payload.new) {
-            console.log("Calling onNewImage with:", payload.new);
-            onNewImage(payload.new as ImagePlanData);
-          } else {
-            console.log("onNewImage not called:", { 
-              hasCallback: !!onNewImage, 
-              hasPayload: !!payload.new 
-            });
+    // Only create a new channel if we don't already have one
+    if (!channelRef.current) {
+      const channel = supabase
+        .channel(CHANNEL_NAME)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'URL+Response'
+          },
+          (payload) => {
+            console.log("New trip plan received!", payload);
+            
+            if (onNewImage && payload.new) {
+              console.log("Calling onNewImage with:", payload.new);
+              onNewImage(payload.new as ImagePlanData);
+            } else {
+              console.log("onNewImage not called:", { 
+                hasCallback: !!onNewImage, 
+                hasPayload: !!payload.new 
+              });
+            }
           }
-        }
-      )
-      .subscribe((status) => {
-        console.log("Supabase channel status:", status);
-        setConnected(status === 'SUBSCRIBED');
+        )
+        .subscribe((status) => {
+          console.log("Supabase channel status:", status);
+          setConnected(status === 'SUBSCRIBED');
+          
+          if (status === 'SUBSCRIBED' && !toastShownRef.current) {
+            toast.success("Connected to real-time updates!");
+            toastShownRef.current = true;
+          } else if (status === 'TIMED_OUT') {
+            toast.error("Connection timed out. Please refresh the page.");
+          } else if (status === 'CHANNEL_ERROR') {
+            toast.error("Error connecting to real-time updates.");
+          }
+        });
         
-        if (status === 'SUBSCRIBED' && !toastShownRef.current && onNewImage) {
-          // Only show the connection success message for active listeners
-          // and only once per session
-          console.log("Successfully connected to real-time updates");
-          toastShownRef.current = true;
-        } else if (status === 'TIMED_OUT' && !errorReportedRef.current) {
-          toast.error("Connection timed out. Please refresh the page.");
-          errorReportedRef.current = true;
-        } else if (status === 'CHANNEL_ERROR' && !errorReportedRef.current) {
-          toast.error("Error connecting to real-time updates.");
-          errorReportedRef.current = true;
-        }
-      });
-      
-    // Store the channel reference
-    channelRef.current = channel;
+      // Store the channel reference
+      channelRef.current = channel;
+    }
   }, [onNewImage]);
 
-  // Setup the channel when component mounts or when onNewImage changes
+  // Setup the channel when component mounts or onNewImage changes
   useEffect(() => {
-    // Only set up a new channel if the callback has actually changed
-    if (previousCallbackRef.current !== onNewImage) {
-      console.log("Callback changed, recreating channel");
-      previousCallbackRef.current = onNewImage;
-      setupChannel();
-    } else if (!channelRef.current) {
-      // Initial setup if no channel exists yet
-      console.log("Initial channel setup");
-      setupChannel();
-    }
+    setupChannel();
 
     // Cleanup function
     return () => {
@@ -95,9 +75,10 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        toastShownRef.current = false;
       }
     };
-  }, [setupChannel, onNewImage]); // Depend on both setupChannel and onNewImage
+  }, [setupChannel]); // setupChannel includes onNewImage in its dependency array
 
   return { connected };
 }

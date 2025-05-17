@@ -1,11 +1,10 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
 
 export interface TripImagePlan {
   created_at: string;
   "Image URL": string | null;
-  Response: Json | null;
+  Response: string | null;
 }
 
 export const getTripImagePlans = async (): Promise<TripImagePlan[]> => {

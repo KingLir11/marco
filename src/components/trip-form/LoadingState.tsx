@@ -1,16 +1,15 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
+import { ArrowRight } from "lucide-react";
 
 export const LoadingState: React.FC = () => {
   const [message, setMessage] = useState("Matching your route with the weather forecast...");
   const [showManualButton, setShowManualButton] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const intervalRef = useRef<number | null>(null);
-  const timerRef = useRef<number | null>(null);
   const navigate = useNavigate();
-  const notificationShownRef = useRef(false);
   
   // Show different messages over time to keep the user engaged
   useEffect(() => {
@@ -36,22 +35,10 @@ export const LoadingState: React.FC = () => {
       setMessage(messages[index]);
     }, 4000);
     
-    // Show manual button after 10 seconds as a fallback
+    // Show manual button after 10 seconds as a fallback (reduced from 20 seconds)
     const buttonTimeout = setTimeout(() => {
       setShowManualButton(true);
     }, 10000);
-
-    // Track elapsed time
-    timerRef.current = window.setInterval(() => {
-      setElapsedSeconds(prev => {
-        // Show a notification after 20 seconds if not shown yet
-        if (prev === 20 && !notificationShownRef.current) {
-          notificationShownRef.current = true;
-          toast.info("You can proceed to view results or wait for automatic redirection");
-        }
-        return prev + 1;
-      });
-    }, 1000);
     
     // Clean up on unmount
     return () => {
@@ -59,19 +46,14 @@ export const LoadingState: React.FC = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
       clearTimeout(buttonTimeout);
     };
   }, []);
   
   // Manual navigation handler
   const handleManualNavigate = () => {
-    console.log("Manual navigation to result page requested");
+    console.log("LoadingState: Manual navigation to result page requested");
+    toast.info("Checking your trip results...");
     navigate("/result");
   };
   
@@ -88,11 +70,7 @@ export const LoadingState: React.FC = () => {
       
       <div className="text-center max-w-md">
         <p className="text-lg font-medium">{message}</p>
-        <p className="text-sm text-gray-500 mt-2">
-          {elapsedSeconds < 30 
-            ? "This may take up to a minute" 
-            : "Taking longer than expected. You may proceed to results"}
-        </p>
+        <p className="text-sm text-gray-500 mt-2">This may take up to a minute or two</p>
       </div>
       
       {/* Animated progress dots */}
@@ -102,19 +80,20 @@ export const LoadingState: React.FC = () => {
         <div className="h-2 w-2 bg-primary/70 rounded-full animate-pulse delay-300"></div>
       </div>
       
-      {/* Manual button for fallback navigation */}
+      {/* Manual button for fallback navigation - show earlier and make more prominent */}
       {showManualButton && (
-        <div className="mt-8">
+        <div className="mt-8 animate-bounce">
           <Button 
             onClick={handleManualNavigate}
-            variant="secondary"
+            variant="default"
+            size="lg"
+            className="gap-2"
           >
             View Trip Results
+            <ArrowRight className="h-4 w-4" />
           </Button>
-          <p className="text-xs text-gray-500 mt-2">
-            {elapsedSeconds < 30
-              ? "Want to check if results are ready?"
-              : "Taking too long? Click to view your trip results."}
+          <p className="text-sm text-gray-500 mt-2">
+            Click to check if your trip plan is ready
           </p>
         </div>
       )}
