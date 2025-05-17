@@ -36,7 +36,7 @@ const TripResultPage = () => {
     <div className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
         {isUsingMockData && (
-          <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
+          <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200">
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>Using Sample Data</AlertTitle>
             <AlertDescription>
