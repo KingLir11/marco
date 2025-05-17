@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,50 +12,43 @@ import { BudgetField } from "@/components/trip-form/BudgetField";
 import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 import { toast } from "@/components/ui/sonner";
-
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
-
 const TripPlanForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
-
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),
     defaultValues: {
       destination: "",
       style: "nature",
       budget: [50],
-      extraRequests: "",
-    },
+      extraRequests: ""
+    }
   });
-
   async function onSubmit(data: TripFormData) {
     setLoading(true);
-    
     try {
       // Format dates to ISO strings for the API
       const formattedData = {
         ...data,
-        startDate: data.startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        startDate: data.startDate.toISOString().split('T')[0],
+        // YYYY-MM-DD format
         endDate: data.endDate.toISOString().split('T')[0],
-        budget: data.budget[0], // Send the single budget value instead of array
+        budget: data.budget[0] // Send the single budget value instead of array
       };
-      
       console.log("Sending form data to webhook:", formattedData);
-      
+
       // Send data to the webhook
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(formattedData),
+        body: JSON.stringify(formattedData)
       });
-      
       if (!response.ok) {
         throw new Error("Failed to send trip data");
       }
-      
       toast.success("Trip details submitted successfully!");
       navigate("/result");
     } catch (error) {
@@ -66,36 +58,21 @@ const TripPlanForm = () => {
       setLoading(false);
     }
   }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8">
-      <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 relative z-10">
+  return <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-8">
+      <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 relative z-10 py-[36px] my-[32px]">
         <h1 className="text-3xl font-bold font-playfair text-center mb-8">Plan Your Trip</h1>
         
-        {loading ? (
-          <LoadingState />
-        ) : (
-          <Form {...form}>
+        {loading ? <LoadingState /> : <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <DestinationField control={form.control} />
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <DateField 
-                  control={form.control} 
-                  name="startDate" 
-                  label="Start Date" 
-                  getDisabledDates={(date) => date < new Date()}
-                />
+                <DateField control={form.control} name="startDate" label="Start Date" getDisabledDates={date => date < new Date()} />
                 
-                <DateField 
-                  control={form.control} 
-                  name="endDate" 
-                  label="End Date" 
-                  getDisabledDates={(date) => {
-                    const startDate = form.getValues("startDate");
-                    return startDate ? date < startDate : date < new Date();
-                  }}
-                />
+                <DateField control={form.control} name="endDate" label="End Date" getDisabledDates={date => {
+              const startDate = form.getValues("startDate");
+              return startDate ? date < startDate : date < new Date();
+            }} />
               </div>
               
               <StyleField control={form.control} />
@@ -106,11 +83,8 @@ const TripPlanForm = () => {
                 Create My Plan
               </Button>
             </form>
-          </Form>
-        )}
+          </Form>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default TripPlanForm;
