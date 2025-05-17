@@ -58,16 +58,25 @@ export const useTripDataProcessing = (webhookData?: any) => {
             if (typeof rawResponseData === 'string') {
               setRawResponse(rawResponseData);
             } else {
-              setRawResponse(JSON.stringify(rawResponseData));
+              setRawResponse(JSON.stringify(rawResponseData, null, 2));
             }
             
             // Parse response data
             if (typeof rawResponseData === 'string') {
-              const cleanedJson = cleanJsonString(rawResponseData);
-              responseData = JSON.parse(cleanedJson);
+              try {
+                const cleanedJson = cleanJsonString(rawResponseData);
+                responseData = JSON.parse(cleanedJson);
+              } catch (parseError) {
+                console.error("Failed to parse response string:", parseError);
+                // If JSON parsing fails, try to use the raw string
+                responseData = rawResponseData;
+              }
             } else {
+              // If it's already an object, use it directly
               responseData = rawResponseData;
             }
+            
+            console.log("Parsed response data:", responseData);
           }
         } else {
           // Fallback: fetch from Supabase
@@ -95,14 +104,19 @@ export const useTripDataProcessing = (webhookData?: any) => {
               if (typeof latestPlan.Response === 'string') {
                 setRawResponse(latestPlan.Response);
               } else {
-                setRawResponse(JSON.stringify(latestPlan.Response));
+                setRawResponse(JSON.stringify(latestPlan.Response, null, 2));
               }
               
               // Get response content
               if (typeof latestPlan.Response === 'string') {
-                // Clean up potential markdown formatting
-                const cleanedJson = cleanJsonString(latestPlan.Response);
-                responseData = JSON.parse(cleanedJson);
+                try {
+                  // Clean up potential markdown formatting
+                  const cleanedJson = cleanJsonString(latestPlan.Response);
+                  responseData = JSON.parse(cleanedJson);
+                } catch (parseError) {
+                  console.error("Failed to parse Supabase response:", parseError);
+                  responseData = latestPlan.Response;
+                }
               } else {
                 responseData = latestPlan.Response;
               }

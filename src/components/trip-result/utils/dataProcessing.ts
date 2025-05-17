@@ -36,27 +36,34 @@ export const extractTripData = (responseData: any) => {
     const packingList = responseData["Packing List"];
     
     // Create a normalized structure that our components can use
-    const destination = primaryItinerary.notes?.split("!")[0].trim() || "Your Destination";
+    const destination = primaryItinerary?.notes?.split("!")[0]?.trim() || "Your Destination";
     const dateRange = "Your Travel Dates";
     
     // Convert primary itinerary days to our mainPlan format
-    const mainPlan = primaryItinerary.days?.map((day: any) => ({
-      day: `${day.dayOfWeek} (${day.date})`,
-      activity: `${day.morning} ${day.afternoon} ${day.evening}`,
-      weather: ""
-    })) || [];
+    const mainPlan = primaryItinerary?.days?.map((day: any) => {
+      return {
+        day: `${day.dayOfWeek} (${day.date})`,
+        activity: `${day.morning || ""} ${day.afternoon || ""} ${day.evening || ""}`.trim(),
+        weather: ""
+      };
+    }) || [];
     
     // Convert alternative itinerary to our alternativePlan format
-    const alternativePlan = alternativeItinerary?.plan?.map((item: any) => ({
-      day: item.time || "Any time",
-      activity: item.activity,
-      weather: alternativeItinerary.weatherType || ""
-    })) || [];
+    const alternativePlan = alternativeItinerary?.plan?.map((item: any) => {
+      return {
+        day: item.time || "Any time",
+        activity: item.activity || "",
+        weather: alternativeItinerary.weatherType || ""
+      };
+    }) || [];
     
     // Convert packing list to equipment format
+    const mustHaves = Array.isArray(packingList?.mustHaves) ? packingList.mustHaves : [];
+    const niceToHave = Array.isArray(packingList?.niceToHave) ? packingList.niceToHave : [];
+    
     const equipment = [
-      ...(packingList?.mustHaves?.map((item: string) => ({ name: item })) || []),
-      ...(packingList?.niceToHave?.map((item: string) => ({ name: item })) || [])
+      ...mustHaves.map((item: string) => ({ name: item })),
+      ...niceToHave.map((item: string) => ({ name: item }))
     ];
     
     return {
@@ -70,10 +77,10 @@ export const extractTripData = (responseData: any) => {
   
   // Fallback: return minimal structure with whatever is available
   return {
-    destination: "Your Destination",
-    dateRange: "Your Travel Dates",
-    mainPlan: [],
-    alternativePlan: [],
-    equipment: []
+    destination: responseData?.destination || "Your Destination",
+    dateRange: responseData?.dateRange || "Your Travel Dates",
+    mainPlan: responseData?.mainPlan || [],
+    alternativePlan: responseData?.alternativePlan || [],
+    equipment: responseData?.equipment || []
   };
 };
