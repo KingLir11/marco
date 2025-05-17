@@ -38,9 +38,20 @@ const convertToTripData = (record: TripPlanRecord): TripData => {
     let tripPlanData: ParsedTripPlan = {};
     
     if (typeof record.trip_plan === 'string') {
-      tripPlanData = JSON.parse(record.trip_plan);
+      const parsed = JSON.parse(record.trip_plan);
+      // Check if it's an array and take the first item if it is
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        tripPlanData = parsed[0];
+      } else {
+        tripPlanData = parsed;
+      }
     } else if (typeof record.trip_plan === 'object') {
-      tripPlanData = record.trip_plan;
+      // Handle if already parsed as object
+      if (Array.isArray(record.trip_plan) && record.trip_plan.length > 0) {
+        tripPlanData = record.trip_plan[0];
+      } else {
+        tripPlanData = record.trip_plan;
+      }
     }
     
     // Format date range
@@ -109,7 +120,9 @@ export function useTripData(tripId?: string) {
         if (error) throw error;
         
         if (data && data.length > 0) {
+          console.log("Retrieved trip data:", data[0]);
           const formattedData = convertToTripData(data[0]);
+          console.log("Formatted trip data:", formattedData);
           setTripData(formattedData);
         } else {
           // Use mock data if no data found
@@ -130,7 +143,7 @@ export function useTripData(tripId?: string) {
 
   // Add icon components to equipment items
   const enhancedTripData = React.useMemo(() => {
-    const iconMap = {
+    const iconMap: Record<string, React.ReactNode> = {
       "Hiking boots": <Mountain className="h-5 w-5" />,
       "Rain jacket": <Umbrella className="h-5 w-5" />,
       "Sun protection": <Sun className="h-5 w-5" />,
@@ -143,7 +156,7 @@ export function useTripData(tripId?: string) {
       ...tripData,
       equipment: tripData.equipment.map(item => ({
         ...item,
-        icon: iconMap[item.name as keyof typeof iconMap] || <Map className="h-5 w-5" />
+        icon: iconMap[item.name] || <Map className="h-5 w-5" />
       }))
     };
   }, [tripData]);
