@@ -94,14 +94,14 @@ export const useTripSubmission = () => {
             pollingInterval.current = null;
           }
           
-          // Instead of just showing an error, let's try to navigate to My Trips
+          // Navigate to My Trips with a state param indicating we came from planning
           toast.error("Trip creation is taking longer than expected. Redirecting to My Trips...");
           setProcessingState('idle');
           setLoading(false);
           
           // Give the toast time to show, then navigate
           setTimeout(() => {
-            navigate('/my-trips');
+            navigate('/my-trips', { state: { fromPlan: true }});
           }, 2000);
           
           return;
@@ -192,8 +192,8 @@ export const useTripSubmission = () => {
               }, 1000);
             } catch (navError) {
               console.error("Navigation error:", navError);
-              // Emergency fallback
-              window.location.href = resultUrl;
+              // Emergency fallback - navigate to My Trips with the fromPlan state
+              navigate('/my-trips', { state: { fromPlan: true }});
             }
           }, 1000);
         }

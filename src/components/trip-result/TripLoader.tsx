@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface TripLoaderProps {
   tripId?: string;
@@ -9,6 +11,7 @@ interface TripLoaderProps {
 
 export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
   const [loadTime, setLoadTime] = useState(0);
+  const navigate = useNavigate();
   
   // Keep track of load time
   useEffect(() => {
@@ -18,6 +21,10 @@ export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
     
     return () => clearInterval(interval);
   }, []);
+  
+  const handleRefreshMyTrips = () => {
+    navigate('/my-trips');
+  };
   
   return (
     <div className="w-full max-w-5xl mx-auto my-12 p-8 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg">
@@ -56,6 +63,22 @@ export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
           <Progress value={66} className="h-1 mb-2" />
           <p className="text-center text-gray-600">Retrieving your personalized trip details...</p>
         </div>
+        
+        {/* Add an option to view all trips if loading takes too long */}
+        {loadTime > 10 && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              Taking longer than expected? Your trip plan may already be ready.
+            </p>
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2" 
+              onClick={handleRefreshMyTrips}
+            >
+              <RefreshCw className="h-4 w-4" /> View My Trips
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

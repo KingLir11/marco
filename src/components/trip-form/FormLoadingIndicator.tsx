@@ -2,7 +2,9 @@
 import React from "react";
 import { Progress } from "@/components/ui/progress";
 import { LoadingState } from "@/components/trip-form/LoadingState";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface FormLoadingIndicatorProps {
   progress: number;
@@ -13,6 +15,8 @@ export const FormLoadingIndicator: React.FC<FormLoadingIndicatorProps> = ({
   progress, 
   processingState 
 }) => {
+  const navigate = useNavigate();
+  
   // Generate a message based on the current state and progress
   const getMessage = () => {
     if (processingState === 'sending') {
@@ -24,6 +28,10 @@ export const FormLoadingIndicator: React.FC<FormLoadingIndicatorProps> = ({
       return 'Almost there! Just a moment...';
     }
     return 'Processing your request...';
+  };
+  
+  const handleGoToMyTrips = () => {
+    navigate('/my-trips', { state: { fromPlan: true }});
   };
 
   return (
@@ -46,6 +54,23 @@ export const FormLoadingIndicator: React.FC<FormLoadingIndicatorProps> = ({
             : "Preparing your results..."
           }
         </p>
+        
+        {/* Show option to view My Trips after waiting for a while */}
+        {processingState === 'waiting' && progress > 50 && (
+          <div className="mt-4 flex flex-col items-center">
+            <p className="text-sm text-gray-500 mb-2">
+              Taking longer than expected? Your plan might already be available.
+            </p>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2" 
+              onClick={handleGoToMyTrips}
+            >
+              <RefreshCw className="h-4 w-4" /> View My Trips
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

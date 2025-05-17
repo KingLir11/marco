@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "react-router-dom";
-import { Mountain, Sun, CloudMoonRain } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Mountain, Sun, CloudMoonRain, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TripPlanRecord } from "@/lib/types/tripTypes";
 import { toast } from "@/components/ui/sonner";
@@ -29,55 +29,118 @@ const formatDateRange = (startDate: string, endDate: string) => {
 const MyTripsPage = () => {
   const [trips, setTrips] = useState<TripPlanRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [autoRefreshing, setAutoRefreshing] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('trip_plans')
-          .select('*')
-          .order('created_at', { ascending: false });
+  // Check if user is coming from the planning page
+  const comingFromPlan = location.state?.fromPlan || false;
 
-        if (error) throw error;
+  // Function to fetch trips that can be called multiple times
+  const fetchTrips = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching trips...");
+      
+      const { data, error } = await supabase
+        .from('trip_plans')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      if (data) {
+        console.log(`Fetched ${data.length} trips`);
+        // Convert the data to ensure it matches our TripPlanRecord type
+        const formattedTrips: TripPlanRecord[] = data.map(trip => ({
+          id: trip.id,
+          destination: trip.destination,
+          start_date: trip.start_date,
+          end_date: trip.end_date,
+          trip_plan: trip.trip_plan,
+          created_at: trip.created_at,
+          user_id: trip.user_id || undefined
+        }));
         
-        if (data) {
-          // Convert the data to ensure it matches our TripPlanRecord type
-          const formattedTrips: TripPlanRecord[] = data.map(trip => ({
-            id: trip.id,
-            destination: trip.destination,
-            start_date: trip.start_date,
-            end_date: trip.end_date,
-            trip_plan: trip.trip_plan,
-            created_at: trip.created_at,
-            user_id: trip.user_id || undefined
-          }));
+        setTrips(formattedTrips);
+        
+        // If we're auto-refreshing and we just got our first trip after plan submission,
+        // navigate to the trip result page
+        if (autoRefreshing && comingFromPlan && formattedTrips.length > 0) {
+          const latestTrip = formattedTrips[0];
+          // Stop auto-refresh and navigate to result page
+          stopAutoRefresh();
+          setAutoRefreshing(false);
           
-          setTrips(formattedTrips);
-        } else {
-          setTrips([]);
+          toast.success("Trip plan created! Showing details...");
+          navigate(`/result/${latestTrip.id}`);
         }
-      } catch (error) {
-        console.error("Error fetching trips:", error);
-        toast.error("Failed to load trips. Please try again later.");
-        // Use mock data if fetching fails
-        setTrips([
-          {
-            id: "1",
-            destination: "Swiss Alps",
-            start_date: "2023-06-10",
-            end_date: "2023-06-17",
-            trip_plan: "{}",
-            created_at: new Date().toISOString()
-          }
-        ]);
-      } finally {
-        setLoading(false);
+      } else {
+        setTrips([]);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching trips:", error);
+      toast.error("Failed to load trips. Please try again later.");
+      // Use mock data if fetching fails
+      setTrips([
+        {
+          id: "1",
+          destination: "Swiss Alps",
+          start_date: "2023-06-10",
+          end_date: "2023-06-17",
+          trip_plan: "{}",
+          created_at: new Date().toISOString()
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }, [comingFromPlan, navigate, autoRefreshing]);
 
+  // Set up auto-refreshing when component mounts
+  useEffect(() => {
     fetchTrips();
-  }, []);
+    
+    // If we're coming from the plan page, start auto-refreshing
+    if (comingFromPlan) {
+      console.log("Starting auto-refresh to detect new trip");
+      toast.info("Waiting for trip creation...", { duration: 3000 });
+      
+      // Auto-refresh every 3 seconds to look for new trips
+      const interval = setInterval(() => {
+        if (autoRefreshing) {
+          fetchTrips();
+        }
+      }, 3000);
+      
+      setRefreshInterval(interval);
+      
+      // After 30 seconds, stop auto-refreshing
+      const timeout = setTimeout(() => {
+        stopAutoRefresh();
+        if (autoRefreshing) {
+          toast.info("Stopped auto-refreshing. Use the refresh button if needed.");
+          setAutoRefreshing(false);
+        }
+      }, 30000);
+      
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+    
+    return undefined;
+  }, [fetchTrips, comingFromPlan, autoRefreshing]);
+
+  // Function to stop auto-refreshing
+  const stopAutoRefresh = () => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  };
 
   const handleDeleteTrip = async (id: string) => {
     try {
@@ -96,6 +159,11 @@ const MyTripsPage = () => {
     }
   };
 
+  const handleManualRefresh = () => {
+    toast.info("Refreshing trips...");
+    fetchTrips();
+  };
+
   return (
     <div 
       className="min-h-screen py-20 px-4 relative bg-cover bg-center"
@@ -106,10 +174,29 @@ const MyTripsPage = () => {
       
       <div className="container mx-auto max-w-5xl relative z-10">
         <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8">
-          <header className="mb-8">
-            <h1 className="text-4xl font-bold font-playfair mb-2">My Trips</h1>
-            <p className="text-gray-600">Your saved trip plans</p>
+          <header className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold font-playfair mb-2">My Trips</h1>
+              <p className="text-gray-600">Your saved trip plans</p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-2" 
+              onClick={handleManualRefresh}
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
           </header>
+          
+          {autoRefreshing && comingFromPlan && (
+            <div className="bg-blue-50 p-4 rounded-md mb-6 border border-blue-100">
+              <p className="text-blue-800 flex items-center gap-2">
+                <Loader2 className="animate-spin h-4 w-4" />
+                Looking for your newly created trip plan...
+              </p>
+            </div>
+          )}
           
           {loading ? (
             <div className="py-8 text-center">
