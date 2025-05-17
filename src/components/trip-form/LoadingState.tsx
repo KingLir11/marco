@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 export const LoadingState: React.FC = () => {
   const [message, setMessage] = useState("Matching your route with the weather forecast...");
-  const intervalRef = useRef<number | null>(null);
   
   // Show different messages over time to keep the user engaged
   useEffect(() => {
@@ -16,25 +15,12 @@ export const LoadingState: React.FC = () => {
     ];
     
     let index = 0;
-    
-    // Clear any existing interval first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    // Set a new interval
-    intervalRef.current = window.setInterval(() => {
+    const interval = setInterval(() => {
       index = (index + 1) % messages.length;
       setMessage(messages[index]);
     }, 4000);
     
-    // Clean up on unmount
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
+    return () => clearInterval(interval);
   }, []);
   
   return (

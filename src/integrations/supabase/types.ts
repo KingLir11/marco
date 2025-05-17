@@ -13,20 +13,20 @@ export type Database = {
         Row: {
           created_at: string
           id: number
-          "Image URL": Json | null
-          Response: Json | null
+          "Image URL": string | null
+          Response: string | null
         }
         Insert: {
           created_at?: string
           id?: number
-          "Image URL"?: Json | null
-          Response?: Json | null
+          "Image URL"?: string | null
+          Response?: string | null
         }
         Update: {
           created_at?: string
           id?: number
-          "Image URL"?: Json | null
-          Response?: Json | null
+          "Image URL"?: string | null
+          Response?: string | null
         }
         Relationships: []
       }
