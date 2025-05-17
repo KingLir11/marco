@@ -2,35 +2,17 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Umbrella, Sun, Wind, Mountain, Map, Route, Compass } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { useTripData } from "@/hooks/useTripData";
+import { TripLoader } from "@/components/trip-result/TripLoader";
 
 const TripResultPage = () => {
-  // In a real app, this data would come from your API/state
-  const tripData = {
-    destination: "Swiss Alps",
-    dateRange: "June 10-17, 2023",
-    mainPlan: [
-      { day: "Day 1", activity: "Arrival and check-in at Mountain Lodge", weather: "Sunny, 22°C" },
-      { day: "Day 2", activity: "Hiking trail to Alpine Lake", weather: "Sunny, 24°C" },
-      { day: "Day 3", activity: "Cable car to Mountain Peak", weather: "Partly Cloudy, 20°C" },
-      { day: "Day 4", activity: "Visit to local village and markets", weather: "Sunny, 23°C" },
-      { day: "Day 5", activity: "Mountain biking adventure", weather: "Cloudy, 19°C" },
-    ],
-    alternativePlan: [
-      { day: "Day 2", activity: "Visit Alpine Museum", weather: "Rain, 15°C" },
-      { day: "Day 3", activity: "Spa day at Mountain Lodge", weather: "Heavy Rain, 14°C" },
-      { day: "Day 5", activity: "Indoor rock climbing center", weather: "Thunderstorm, 16°C" },
-    ],
-    equipment: [
-      { name: "Hiking boots", icon: <Mountain className="h-5 w-5" /> },
-      { name: "Rain jacket", icon: <Umbrella className="h-5 w-5" /> },
-      { name: "Sun protection", icon: <Sun className="h-5 w-5" /> },
-      { name: "Trail map", icon: <Map className="h-5 w-5" /> },
-      { name: "Water bottle", icon: <Wind className="h-5 w-5" /> },
-      { name: "Compass", icon: <Compass className="h-5 w-5" /> },
-    ]
-  };
+  const { tripId } = useParams<{ tripId: string }>();
+  const { tripData, loading } = useTripData(tripId);
+
+  if (loading) {
+    return <TripLoader />;
+  }
 
   return (
     <div className="py-20 px-4">
