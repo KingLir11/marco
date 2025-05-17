@@ -1,8 +1,0 @@
-
-project_id = "sabndgaxyzczmisusouv"
-
-[realtime]
-enabled = true
-
-[realtime.tables]
-"public.URL+Response" = true
