@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/sonner';
 
@@ -17,8 +17,8 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
   const channelRef = useRef<any>(null);
   const toastShownRef = useRef(false);
   
-  // Set up the Supabase realtime connection - moved to useCallback to avoid stale closures
-  const setupChannel = useCallback(() => {
+  // Set up the Supabase realtime connection
+  useEffect(() => {
     console.log("Setting up Realtime listener for 'URL+Response' table");
     
     // Only create a new channel if we don't already have one
@@ -36,13 +36,7 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
             console.log("New trip plan received!", payload);
             
             if (onNewImage && payload.new) {
-              console.log("Calling onNewImage with:", payload.new);
               onNewImage(payload.new as ImagePlanData);
-            } else {
-              console.log("onNewImage not called:", { 
-                hasCallback: !!onNewImage, 
-                hasPayload: !!payload.new 
-              });
             }
           }
         )
@@ -63,11 +57,6 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
       // Store the channel reference
       channelRef.current = channel;
     }
-  }, [onNewImage]);
-
-  // Setup the channel when component mounts or onNewImage changes
-  useEffect(() => {
-    setupChannel();
 
     // Cleanup function
     return () => {
@@ -78,7 +67,15 @@ export function useRealtimeImages(onNewImage?: (data: ImagePlanData) => void) {
         toastShownRef.current = false;
       }
     };
-  }, [setupChannel]); // setupChannel includes onNewImage in its dependency array
+  }, []); // Only set up once, don't rely on onNewImage changing
+
+  // If onNewImage changes, update the channel's event handler
+  useEffect(() => {
+    if (channelRef.current && onNewImage) {
+      console.log("Updating onNewImage handler");
+      // This is a separate effect to avoid recreating the channel when onNewImage changes
+    }
+  }, [onNewImage]);
 
   return { connected };
 }

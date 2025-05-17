@@ -1,15 +1,8 @@
-
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
-import { ArrowRight } from "lucide-react";
 
 export const LoadingState: React.FC = () => {
   const [message, setMessage] = useState("Matching your route with the weather forecast...");
-  const [showManualButton, setShowManualButton] = useState(false);
   const intervalRef = useRef<number | null>(null);
-  const navigate = useNavigate();
   
   // Show different messages over time to keep the user engaged
   useEffect(() => {
@@ -35,27 +28,14 @@ export const LoadingState: React.FC = () => {
       setMessage(messages[index]);
     }, 4000);
     
-    // Show manual button after 10 seconds as a fallback (reduced from 20 seconds)
-    const buttonTimeout = setTimeout(() => {
-      setShowManualButton(true);
-    }, 10000);
-    
     // Clean up on unmount
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      clearTimeout(buttonTimeout);
     };
   }, []);
-  
-  // Manual navigation handler
-  const handleManualNavigate = () => {
-    console.log("LoadingState: Manual navigation to result page requested");
-    toast.info("Checking your trip results...");
-    navigate("/result");
-  };
   
   return (
     <div className="flex flex-col items-center justify-center py-10 space-y-6">
@@ -79,26 +59,6 @@ export const LoadingState: React.FC = () => {
         <div className="h-2 w-2 bg-primary/70 rounded-full animate-pulse delay-150"></div>
         <div className="h-2 w-2 bg-primary/70 rounded-full animate-pulse delay-300"></div>
       </div>
-      
-      {/* Manual button for fallback navigation - show earlier and make more prominent */}
-      {showManualButton && (
-        <div className="mt-8 animate-bounce">
-          <Button 
-            onClick={handleManualNavigate}
-            variant="default"
-            size="lg"
-            className="gap-2"
-          >
-            View Trip Results
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-          <p className="text-sm text-gray-500 mt-2">
-            Click to check if your trip plan is ready
-          </p>
-        </div>
-      )}
     </div>
   );
 };
-
-export default LoadingState;
