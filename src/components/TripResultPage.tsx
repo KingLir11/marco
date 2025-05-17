@@ -35,8 +35,8 @@ const TripResultPage = () => {
           return;
         }
 
-        // Explicitly specify the type for trips when fetching from Supabase
-        const { data: trips, error } = await supabase
+        // Fix typing by using explicit generic type parameter
+        const { data, error } = await supabase
           .from("trips")
           .select("*")
           .eq("destination", destination)
@@ -47,8 +47,8 @@ const TripResultPage = () => {
           throw error;
         }
 
-        if (trips && trips.length > 0) {
-          const trip = trips[0] as TripData;
+        if (data && data.length > 0) {
+          const trip = data[0] as TripData;
           setTripData(trip);
           
           // Get the text plan directly from the trip record
