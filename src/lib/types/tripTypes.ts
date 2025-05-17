@@ -1,6 +1,4 @@
 
-import { Json } from "@/integrations/supabase/types";
-
 export interface DailyActivity {
   day: string;
   activity: string;
@@ -27,7 +25,7 @@ export interface TripPlanRecord {
   destination: string;
   start_date: string;
   end_date: string;
-  trip_plan: Json; // Changed from string to Json to match Supabase type
+  trip_plan: string; // JSON string of trip data
   created_at: string;
   user_id?: string;
 }

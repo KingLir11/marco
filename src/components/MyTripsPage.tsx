@@ -41,8 +41,7 @@ const MyTripsPage = () => {
 
         if (error) throw error;
         
-        // Explicitly cast the data to match our TripPlanRecord type
-        setTrips(data as TripPlanRecord[] || []);
+        setTrips(data || []);
       } catch (error) {
         console.error("Error fetching trips:", error);
         toast.error("Failed to load trips. Please try again later.");
@@ -55,7 +54,7 @@ const MyTripsPage = () => {
             end_date: "2023-06-17",
             trip_plan: "{}",
             created_at: new Date().toISOString()
-          } as TripPlanRecord
+          }
         ]);
       } finally {
         setLoading(false);

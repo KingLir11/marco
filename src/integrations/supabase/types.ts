@@ -16,7 +16,7 @@ export type Database = {
           end_date: string
           id: string
           start_date: string
-          trip_plan: Json
+          trip_plan: string
           user_id: string | null
         }
         Insert: {
@@ -25,7 +25,7 @@ export type Database = {
           end_date: string
           id?: string
           start_date: string
-          trip_plan: Json
+          trip_plan: string
           user_id?: string | null
         }
         Update: {
@@ -34,7 +34,7 @@ export type Database = {
           end_date?: string
           id?: string
           start_date?: string
-          trip_plan?: Json
+          trip_plan?: string
           user_id?: string | null
         }
         Relationships: []

@@ -13,7 +13,6 @@ import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeTripPlanData } from "@/lib/schemas/tripDataSchema";
 
 // We keep using the external webhook to generate the trip plan
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
@@ -61,10 +60,6 @@ const TripPlanForm = () => {
       // Get the trip plan data from the webhook response
       const tripPlanData = await response.json();
       
-      // Normalize the trip plan data before storing
-      const normalizedData = normalizeTripPlanData(tripPlanData);
-      console.log("Normalized data before storing:", normalizedData);
-      
       // Store the trip data in Supabase
       const { error } = await supabase
         .from('trip_plans')
@@ -72,7 +67,7 @@ const TripPlanForm = () => {
           destination: data.destination,
           start_date: data.startDate.toISOString().split('T')[0],
           end_date: data.endDate.toISOString().split('T')[0],
-          trip_plan: JSON.stringify(normalizedData),
+          trip_plan: JSON.stringify(tripPlanData),
           // user_id will be automatically set by RLS if user is authenticated
         });
 
