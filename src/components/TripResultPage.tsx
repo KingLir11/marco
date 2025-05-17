@@ -6,10 +6,12 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { useTripData } from "@/hooks/useTripData";
 import { TripLoader } from "@/components/trip-result/TripLoader";
 import { toast } from "@/components/ui/sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 const TripResultPage = () => {
   const { tripId } = useParams<{ tripId: string }>();
-  const { tripData, loading, error } = useTripData(tripId);
+  const { tripData, loading, error, isUsingMockData } = useTripData(tripId);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -33,6 +35,22 @@ const TripResultPage = () => {
   return (
     <div className="py-20 px-4">
       <div className="container mx-auto max-w-5xl">
+        {isUsingMockData && (
+          <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Using Sample Data</AlertTitle>
+            <AlertDescription>
+              We couldn't find your trip data in the database, so we're showing you a sample trip instead.
+              {tripId ? ` Trip ID ${tripId} was not found.` : " No trips were found in your account."}
+              <div className="mt-2">
+                <Button variant="outline" size="sm" onClick={() => navigate("/plan")}>
+                  Create a Trip
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 border border-white/20">
           <header className="mb-8">
             <h1 className="text-4xl font-bold font-playfair mb-2">{tripData.destination}</h1>

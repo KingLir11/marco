@@ -10,16 +10,44 @@ export function useTripData(tripId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [tripData, setTripData] = useState<TripData>(mockTripData);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
 
   useEffect(() => {
     async function fetchTripData() {
       try {
         setLoading(true);
+        setIsUsingMockData(false);
         
+        // Debug the tripId received
+        console.log("useTripData called with tripId:", tripId);
+        
+        // First, let's check if the table exists and has data by doing a count query
+        const { count, error: countError } = await supabase
+          .from('trip_plans')
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) {
+          console.error("Error checking trip_plans table:", countError);
+          toast.error("Database connection error. Check console for details.");
+          throw countError;
+        }
+        
+        console.log("Total trips in database:", count);
+        
+        // If there are no trips at all in the database, show appropriate message
+        if (count === 0) {
+          console.log("No trips exist in the database at all");
+          setIsUsingMockData(true);
+          toast.info("No trips found in database. Using sample data.");
+          setTripData(mockTripData);
+          setLoading(false);
+          return;
+        }
+        
+        // Proceed with regular query
         let query = supabase.from('trip_plans').select('*');
         
         // If a specific tripId is provided, fetch just that trip
-        // Make sure tripId isn't the route parameter placeholder
         if (tripId && tripId !== ':tripId') {
           console.log("Fetching specific trip with ID:", tripId);
           query = query.eq('id', tripId);
@@ -30,9 +58,11 @@ export function useTripData(tripId?: string) {
         }
         
         const { data, error } = await query;
+        console.log("Query results:", { data, error });
         
         if (error) {
           console.error("Supabase error:", error);
+          toast.error(`Database error: ${error.message}`);
           throw error;
         }
         
@@ -41,10 +71,17 @@ export function useTripData(tripId?: string) {
           const formattedData = convertToTripData(data[0]);
           console.log("Formatted trip data:", formattedData);
           setTripData(formattedData);
+          setIsUsingMockData(false);
           toast.success("Trip plan loaded successfully");
         } else {
-          console.log("No trip data found, using mock data");
-          toast.info("Using sample trip data - no trips found in database");
+          console.log("No matching trip data found for the query");
+          setIsUsingMockData(true);
+          
+          if (tripId && tripId !== ':tripId') {
+            toast.error(`Trip with ID ${tripId} not found, but other trips exist in database`);
+          } else {
+            toast.info("No trips match your query. Using sample data instead.");
+          }
           // Use mock data if no data found
           setTripData(mockTripData);
         }
@@ -54,6 +91,7 @@ export function useTripData(tripId?: string) {
         toast.error("Error loading trip data");
         // Fallback to mock data
         setTripData(mockTripData);
+        setIsUsingMockData(true);
       } finally {
         setLoading(false);
       }
@@ -67,5 +105,10 @@ export function useTripData(tripId?: string) {
     enhanceTripDataWithIcons(tripData)
   , [tripData]);
 
-  return { tripData: enhancedTripData, loading, error };
+  return { 
+    tripData: enhancedTripData, 
+    loading, 
+    error, 
+    isUsingMockData 
+  };
 }
