@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Umbrella, Sun, Wind, Mountain, Map, Compass } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
@@ -116,19 +114,7 @@ Hey there! Planning a relaxed trip to the Swiss Alps? Awesome choice!
     budget: 500
   };
 
-  // Map icon strings to Lucide React components
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case "mountain": return <Mountain className="h-5 w-5" />;
-      case "umbrella": return <Umbrella className="h-5 w-5" />;
-      case "sun": return <Sun className="h-5 w-5" />;
-      case "map": return <Map className="h-5 w-5" />;
-      case "wind": return <Wind className="h-5 w-5" />;
-      case "compass": return <Compass className="h-5 w-5" />;
-      default: return <Mountain className="h-5 w-5" />;
-    }
-  };
-
+  // Format date range for display
   const formatDateRange = (startDate: string, endDate: string) => {
     const start = new Date(startDate);
     const end = new Date(endDate);

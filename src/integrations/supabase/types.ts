@@ -11,39 +11,18 @@ export type Database = {
     Tables: {
       trips: {
         Row: {
-          budget: number
           created_at: string
-          destination: string
-          end_date: string
-          extra_requests: string | null
           id: string
-          image_path: string | null
-          start_date: string
-          style: string
           text_plan: string
         }
         Insert: {
-          budget: number
           created_at?: string
-          destination: string
-          end_date: string
-          extra_requests?: string | null
           id?: string
-          image_path?: string | null
-          start_date: string
-          style: string
           text_plan: string
         }
         Update: {
-          budget?: number
           created_at?: string
-          destination?: string
-          end_date?: string
-          extra_requests?: string | null
           id?: string
-          image_path?: string | null
-          start_date?: string
-          style?: string
           text_plan?: string
         }
         Relationships: []

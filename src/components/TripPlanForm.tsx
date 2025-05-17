@@ -60,8 +60,7 @@ const TripPlanForm = () => {
       // Store the trip destination in local storage so we can fetch it on the result page
       localStorage.setItem("lastTripDestination", data.destination);
       
-      // Create trip record in Supabase directly with plain text placeholder
-      // This will be updated later by the webhook with the actual plan
+      // Create trip record in Supabase with the simplified structure
       const { error: insertError } = await supabase
         .from("trips")
         .insert({
