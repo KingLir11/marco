@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TripData, TripPlanRecord } from '@/lib/types/tripTypes';
@@ -53,12 +54,17 @@ const convertToTripData = (record: TripPlanRecord): TripData => {
     // Normalize and validate the trip plan data
     const normalizedData = normalizeTripPlanData(tripPlanData);
     
-    return {
+    // Create the final TripData object with required fields
+    const tripData: TripData = {
       id: record.id,
       destination: record.destination,
       dateRange,
-      ...normalizedData
+      mainPlan: normalizedData.mainPlan,
+      alternativePlan: normalizedData.alternativePlan,
+      equipment: normalizedData.equipment
     };
+    
+    return tripData;
   } catch (error) {
     console.error("Error converting trip plan data:", error);
     toast.error("There was an issue loading your trip plan. Using default data instead.");
