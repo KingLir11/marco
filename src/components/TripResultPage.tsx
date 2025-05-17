@@ -1,14 +1,27 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useTripData } from "@/hooks/useTripData";
 import { TripLoader } from "@/components/trip-result/TripLoader";
+import { toast } from "@/components/ui/sonner";
 
 const TripResultPage = () => {
   const { tripId } = useParams<{ tripId: string }>();
-  const { tripData, loading } = useTripData(tripId);
+  const { tripData, loading, error } = useTripData(tripId);
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Log when the component mounts with the tripId
+    console.log(`TripResultPage mounted with tripId: ${tripId}`);
+    
+    if (error) {
+      console.error("Error loading trip data:", error);
+      toast.error("Failed to load trip data. Redirecting to My Trips...");
+      setTimeout(() => navigate("/my-trips"), 2000);
+    }
+  }, [tripId, error, navigate]);
 
   // Display loading state with tripId for debugging
   if (loading) {

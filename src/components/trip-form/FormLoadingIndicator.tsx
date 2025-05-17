@@ -2,6 +2,7 @@
 import React from "react";
 import { Progress } from "@/components/ui/progress";
 import { LoadingState } from "@/components/trip-form/LoadingState";
+import { Loader2 } from "lucide-react";
 
 interface FormLoadingIndicatorProps {
   progress: number;
@@ -30,10 +31,15 @@ export const FormLoadingIndicator: React.FC<FormLoadingIndicatorProps> = ({
       <LoadingState />
       
       <div className="space-y-2">
-        <p className="text-center text-gray-700">
-          {getMessage()}
-        </p>
+        <div className="flex justify-center items-center gap-2">
+          <Loader2 className="animate-spin h-5 w-5" />
+          <p className="text-center text-gray-700">
+            {getMessage()}
+          </p>
+        </div>
+        
         <Progress value={progress} className="h-2" />
+        
         <p className="text-center text-sm text-gray-500">
           {progress < 90 
             ? `This may take up to a minute (${processingState} state, ${Math.round(progress)}%)`

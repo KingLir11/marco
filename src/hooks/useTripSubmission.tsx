@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/sonner";
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
 // Maximum polling time in seconds before giving up
-const MAX_POLLING_TIME = 60; 
+const MAX_POLLING_TIME = 90; // Extended timeout to 90 seconds
 // How often to check for the trip (in ms)
 const POLLING_INTERVAL = 1500;
 
@@ -43,7 +43,10 @@ export const useTripSubmission = () => {
       // Start polling for trip if we have a destination
       if (destinationRef.current) {
         console.log(`Starting to poll for trip with destination: ${destinationRef.current}`);
-        checkTripCreation(destinationRef.current);
+        // Start polling in the next tick to ensure state has updated
+        setTimeout(() => {
+          checkTripCreation(destinationRef.current || '');
+        }, 0);
       } else {
         console.warn('No destination set for polling');
       }
@@ -90,9 +93,17 @@ export const useTripSubmission = () => {
             clearInterval(pollingInterval.current);
             pollingInterval.current = null;
           }
-          toast.error("Trip creation is taking longer than expected. Please check 'My Trips' later.");
+          
+          // Instead of just showing an error, let's try to navigate to My Trips
+          toast.error("Trip creation is taking longer than expected. Redirecting to My Trips...");
           setProcessingState('idle');
           setLoading(false);
+          
+          // Give the toast time to show, then navigate
+          setTimeout(() => {
+            navigate('/my-trips');
+          }, 2000);
+          
           return;
         }
         
@@ -105,22 +116,41 @@ export const useTripSubmission = () => {
         console.log(`Looking for trips created after: ${timestampStr}`);
         console.log(`Looking for destination (case-insensitive): "${tripDestination}"`);
         
-        // Check for recent trip with this destination created after submission
-        // Using ilike for case-insensitive comparison
-        const { data, error } = await supabase
+        // First query: Try exact case-insensitive match
+        let { data, error } = await supabase
           .from('trip_plans')
           .select('*')
-          .ilike('destination', tripDestination) // Case-insensitive match
+          .ilike('destination', tripDestination)
           .gte('created_at', timestampStr)
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(5);
           
         if (error) {
           console.error("Error checking for trip:", error);
           return;
         }
         
-        console.log(`Poll result: found ${data?.length} trips`, data);
+        console.log(`Poll result for exact match: found ${data?.length} trips`, data);
+        
+        // If no exact match found, try looking for any recent trip
+        if (!data || data.length === 0) {
+          console.log("No exact match found, looking for any recent trips...");
+          
+          const { data: recentData, error: recentError } = await supabase
+            .from('trip_plans')
+            .select('*')
+            .gte('created_at', timestampStr)
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+          if (recentError) {
+            console.error("Error checking for recent trips:", recentError);
+            return;
+          }
+          
+          console.log(`Poll result for recent trips: found ${recentData?.length} trips`, recentData);
+          data = recentData;
+        }
         
         if (data && data.length > 0) {
           // Found the trip! Complete progress and redirect
@@ -136,18 +166,36 @@ export const useTripSubmission = () => {
             pollingInterval.current = null;
           }
           
+          // Ensure we can navigate
+          const resultUrl = `/result/${tripId}`;
+          console.log(`Preparing to redirect to ${resultUrl}`);
+          
           // Give a moment for the user to see 100% before redirecting
           setTimeout(() => {
-            const resultUrl = `/result/${tripId}`;
-            console.log(`Redirecting to ${resultUrl}`);
-            navigate(resultUrl);
+            console.log(`NOW REDIRECTING to ${resultUrl}`);
             
-            // Reset state after navigation
-            setTimeout(() => {
+            try {
+              // Use direct window.location as a fallback if navigate fails
+              navigate(resultUrl);
+              console.log("Navigation called!");
+              
+              // Reset state after navigation
               setProcessingState('idle');
               setLoading(false);
-            }, 100);
-          }, 500);
+              
+              // Fallback to direct redirection after a small delay if we're still here
+              setTimeout(() => {
+                if (window.location.pathname !== resultUrl) {
+                  console.log("Fallback: Using direct window.location redirection");
+                  window.location.href = resultUrl;
+                }
+              }, 1000);
+            } catch (navError) {
+              console.error("Navigation error:", navError);
+              // Emergency fallback
+              window.location.href = resultUrl;
+            }
+          }, 1000);
         }
       } catch (err) {
         console.error("Error checking for trip:", err);
@@ -194,11 +242,15 @@ export const useTripSubmission = () => {
       }
 
       // Change state to waiting - don't try to parse response as JSON
+      const responseText = await response.text();
+      console.log("Webhook response:", responseText);
+      
       setProcessingState('waiting');
       setProgress(30); // Update progress after successful webhook call
       
       toast.success("Trip request sent! Creating your personalized plan...");
-      // Note: checkTripCreation will be called by the useEffect when state changes to 'waiting'
+      
+      // Note: We'll let the useEffect trigger the checkTripCreation now that we've set processingState to 'waiting'
       
     } catch (error) {
       console.error("Error submitting trip data:", error);

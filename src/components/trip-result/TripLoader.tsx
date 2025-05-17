@@ -1,18 +1,30 @@
-
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface TripLoaderProps {
   tripId?: string;
 }
 
 export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
+  const [loadTime, setLoadTime] = useState(0);
+  
+  // Keep track of load time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLoadTime(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
   return (
     <div className="w-full max-w-5xl mx-auto my-12 p-8 bg-white/80 backdrop-blur-sm rounded-lg shadow-lg">
       <div className="flex flex-col items-center justify-center py-10">
         <div className="relative mb-6">
           <div className="h-16 w-40 bg-[#79A9CE]/40 rounded-full animate-cloud-move mb-4"></div>
+          <Loader2 className="animate-spin h-8 w-8 mx-auto mb-3" />
         </div>
         
         <h2 className="text-xl font-semibold mb-4">Loading Your Trip Plan</h2>
@@ -20,7 +32,7 @@ export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
         {tripId ? (
           <p className="text-sm text-gray-500 mb-6">Trip ID: {tripId}</p>
         ) : (
-          <p className="text-sm text-gray-500 mb-6">Retrieving trip details...</p>
+          <p className="text-sm text-gray-500 mb-6">Retrieving trip details... ({loadTime}s)</p>
         )}
         
         <div className="animate-pulse space-y-6 w-full">
