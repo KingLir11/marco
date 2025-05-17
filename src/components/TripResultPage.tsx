@@ -10,9 +10,12 @@ const TripResultPage = () => {
   const { tripId } = useParams<{ tripId: string }>();
   const { tripData, loading } = useTripData(tripId);
 
+  // Display loading state with tripId for debugging
   if (loading) {
-    return <TripLoader />;
+    return <TripLoader tripId={tripId} />;
   }
+
+  console.log("Rendering trip result page with data:", tripData);
 
   return (
     <div className="py-20 px-4">

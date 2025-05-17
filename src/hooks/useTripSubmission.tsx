@@ -24,12 +24,14 @@ export const useTripSubmission = () => {
   const submissionTimestamp = useRef<Date | null>(null);
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
   const pollCount = useRef<number>(0);
+  const destinationRef = useRef<string | null>(null);
 
   // Effect to simulate progress bar movement while waiting for trip data
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
     if (processingState === 'waiting') {
+      console.log('Starting progress bar animation as we wait for trip creation');
       interval = setInterval(() => {
         setProgress(prev => {
           // Move progress gradually up to 90% (leave room for completion)
@@ -37,10 +39,19 @@ export const useTripSubmission = () => {
           return Math.min(nextProgress, 90);
         });
       }, 500);
+
+      // Start polling for trip if we have a destination
+      if (destinationRef.current) {
+        console.log(`Starting to poll for trip with destination: ${destinationRef.current}`);
+        checkTripCreation(destinationRef.current);
+      } else {
+        console.warn('No destination set for polling');
+      }
     } else if (processingState === 'idle') {
       setProgress(0);
       submissionTimestamp.current = null;
       pollCount.current = 0;
+      destinationRef.current = null;
     }
     
     return () => {
@@ -62,7 +73,10 @@ export const useTripSubmission = () => {
     // Clear any existing polling interval
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
     }
+    
+    console.log(`Setting up polling for destination: "${tripDestination}"`);
     
     // Start a new polling interval
     pollingInterval.current = setInterval(async () => {
@@ -72,19 +86,32 @@ export const useTripSubmission = () => {
         
         // Check for timeout condition
         if (pollCount.current > MAX_POLLING_TIME * 1000 / POLLING_INTERVAL) {
-          clearInterval(pollingInterval.current!);
+          if (pollingInterval.current) {
+            clearInterval(pollingInterval.current);
+            pollingInterval.current = null;
+          }
           toast.error("Trip creation is taking longer than expected. Please check 'My Trips' later.");
           setProcessingState('idle');
           setLoading(false);
           return;
         }
         
+        if (!submissionTimestamp.current) {
+          console.error("No submission timestamp available for filtering trips");
+          return;
+        }
+
+        const timestampStr = submissionTimestamp.current.toISOString();
+        console.log(`Looking for trips created after: ${timestampStr}`);
+        console.log(`Looking for destination (case-insensitive): "${tripDestination}"`);
+        
         // Check for recent trip with this destination created after submission
+        // Using ilike for case-insensitive comparison
         const { data, error } = await supabase
           .from('trip_plans')
           .select('*')
-          .eq('destination', tripDestination)
-          .gte('created_at', submissionTimestamp.current?.toISOString() || new Date().toISOString())
+          .ilike('destination', tripDestination) // Case-insensitive match
+          .gte('created_at', timestampStr)
           .order('created_at', { ascending: false })
           .limit(1);
           
@@ -92,6 +119,8 @@ export const useTripSubmission = () => {
           console.error("Error checking for trip:", error);
           return;
         }
+        
+        console.log(`Poll result: found ${data?.length} trips`, data);
         
         if (data && data.length > 0) {
           // Found the trip! Complete progress and redirect
@@ -102,15 +131,22 @@ export const useTripSubmission = () => {
           toast.success("Trip plan created successfully!");
           
           // Clear the polling interval
-          clearInterval(pollingInterval.current!);
-          pollingInterval.current = null;
+          if (pollingInterval.current) {
+            clearInterval(pollingInterval.current);
+            pollingInterval.current = null;
+          }
           
           // Give a moment for the user to see 100% before redirecting
           setTimeout(() => {
-            console.log(`Redirecting to /result/${tripId}`);
-            navigate(`/result/${tripId}`);
-            setProcessingState('idle');
-            setLoading(false);
+            const resultUrl = `/result/${tripId}`;
+            console.log(`Redirecting to ${resultUrl}`);
+            navigate(resultUrl);
+            
+            // Reset state after navigation
+            setTimeout(() => {
+              setProcessingState('idle');
+              setLoading(false);
+            }, 100);
           }, 500);
         }
       } catch (err) {
@@ -126,8 +162,13 @@ export const useTripSubmission = () => {
     setProgress(10); // Start progress at 10%
     
     try {
+      // Store destination for polling reference
+      destinationRef.current = data.destination;
+      
       // Set submission timestamp for filtering recent trips
       submissionTimestamp.current = new Date();
+      console.log(`Trip submission started at: ${submissionTimestamp.current.toISOString()}`);
+      console.log(`Trip destination: "${data.destination}"`);
       
       // Format dates to ISO strings for the API
       const formattedData = {
@@ -157,9 +198,7 @@ export const useTripSubmission = () => {
       setProgress(30); // Update progress after successful webhook call
       
       toast.success("Trip request sent! Creating your personalized plan...");
-      
-      // Start checking for the trip in the database with updated polling mechanism
-      checkTripCreation(data.destination);
+      // Note: checkTripCreation will be called by the useEffect when state changes to 'waiting'
       
     } catch (error) {
       console.error("Error submitting trip data:", error);

@@ -35,7 +35,10 @@ export const FormLoadingIndicator: React.FC<FormLoadingIndicatorProps> = ({
         </p>
         <Progress value={progress} className="h-2" />
         <p className="text-center text-sm text-gray-500">
-          {progress < 90 ? "This may take up to a minute" : "Preparing your results..."}
+          {progress < 90 
+            ? `This may take up to a minute (${processingState} state, ${Math.round(progress)}%)`
+            : "Preparing your results..."
+          }
         </p>
       </div>
     </div>
