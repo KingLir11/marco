@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import { getLatestTripImagePlan } from "@/services/tripImageService";
@@ -21,7 +22,6 @@ const TripResultPage = () => {
     equipment: [] as { name: string; icon: JSX.Element }[]
   });
   const [imageURL, setImageURL] = useState<string | null>(null);
-  const [textResponse, setTextResponse] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLatestTripPlan = async () => {
@@ -35,7 +35,6 @@ const TripResultPage = () => {
           // Parse AI response if available
           if (latestPlan.Response) {
             try {
-              // Try to parse as JSON
               const parsedResponse = JSON.parse(latestPlan.Response);
               if (parsedResponse) {
                 // Update trip data with the parsed response
@@ -49,22 +48,10 @@ const TripResultPage = () => {
                     icon: getIconForEquipment(item.name)
                   })) : []
                 });
-                setTextResponse(null);
               }
             } catch (error) {
-              // If JSON parsing fails, treat it as plain text
-              console.error("Error parsing AI response as JSON:", error);
-              console.log("Displaying response as plain text instead");
-              setTextResponse(latestPlan.Response);
-              
-              // Set basic trip data
-              setTripData({
-                destination: "Your Trip",
-                dateRange: "Your Travel Dates",
-                mainPlan: [],
-                alternativePlan: [],
-                equipment: []
-              });
+              console.error("Error parsing AI response:", error);
+              toast.error("Failed to parse trip data");
             }
           }
         } else {
@@ -91,24 +78,8 @@ const TripResultPage = () => {
             <>
               <TripHeader destination={tripData.destination} dateRange={tripData.dateRange} />
               <TripImage imageURL={imageURL} destination={tripData.destination} />
-              
-              {textResponse ? (
-                // Display plain text response if JSON parsing failed
-                <div className="my-8 p-6 bg-blue-50 rounded-lg">
-                  <h2 className="text-xl font-semibold mb-4">Your Trip Plan</h2>
-                  <div className="prose max-w-none whitespace-pre-wrap">
-                    {textResponse}
-                  </div>
-                </div>
-              ) : (
-                // Otherwise display structured data
-                <TripPlanDisplays mainPlan={tripData.mainPlan} alternativePlan={tripData.alternativePlan} />
-              )}
-              
-              {!textResponse && tripData.equipment.length > 0 && (
-                <PackingList equipment={tripData.equipment} />
-              )}
-              
+              <TripPlanDisplays mainPlan={tripData.mainPlan} alternativePlan={tripData.alternativePlan} />
+              <PackingList equipment={tripData.equipment} />
               <ActionButtons />
             </>
           )}
