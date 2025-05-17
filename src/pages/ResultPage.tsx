@@ -16,6 +16,7 @@ const ResultPage = () => {
   const [refreshKey, setRefreshKey] = useState(0); // Key to force component refresh
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Monitor realtime connection status
   const { connected } = useRealtimeImages();
@@ -45,11 +46,23 @@ const ResultPage = () => {
   };
 
   // Manual retry function
-  const handleRetry = () => {
+  const handleRetry = async () => {
     console.log("ResultPage: Manual retry requested");
-    setRetryCount(prev => prev + 1);
-    setRefreshKey(prevKey => prevKey + 1);
-    setError(null);
+    setIsRetrying(true);
+    
+    try {
+      // Debug log all rows to see what data we have
+      await debugLogAllRows();
+      
+      // Increment retry counter and refresh key to force components to reload
+      setRetryCount(prev => prev + 1);
+      setRefreshKey(prevKey => prevKey + 1);
+      setError(null);
+    } catch (error) {
+      console.error("Error during retry:", error);
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   return (
@@ -74,9 +87,18 @@ const ResultPage = () => {
             </Alert>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button onClick={handleRetry} variant="outline" className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Retry Loading
+              <Button 
+                onClick={handleRetry} 
+                variant="outline" 
+                className="gap-2"
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {isRetrying ? "Retrying..." : "Retry Loading"}
               </Button>
               <Button asChild>
                 <Link to="/plan">Create New Trip Plan</Link>

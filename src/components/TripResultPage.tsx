@@ -23,6 +23,7 @@ const TripResultPage = () => {
   });
   const [imageURL, setImageURL] = useState<string | null>(null);
   const [parsingError, setParsingError] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<string | null>(null);
 
   // Helper function to strip markdown code blocks if present
   const cleanJsonString = (jsonString: string): string => {
@@ -37,6 +38,66 @@ const TripResultPage = () => {
     }
     
     return jsonString.trim();
+  };
+
+  // New function to extract trip data from the complex AI response structure
+  const extractTripData = (responseData: any) => {
+    console.log("Processing response data structure:", responseData);
+    
+    // Check for different possible data structures
+    if (responseData?.destination) {
+      // Standard format already
+      return responseData;
+    }
+    
+    // Format with Primary/Alternative Itinerary
+    if (responseData?.["Primary Itinerary"]) {
+      // Extract data from the Primary Itinerary format
+      const primaryItinerary = responseData["Primary Itinerary"];
+      const alternativeItinerary = responseData["Alternative Itinerary (Bad Weather Plan)"];
+      const packingList = responseData["Packing List"];
+      
+      // Create a normalized structure that our components can use
+      const destination = primaryItinerary.notes?.split("!")[0].trim() || "Your Destination";
+      const dateRange = "Your Travel Dates";
+      
+      // Convert primary itinerary days to our mainPlan format
+      const mainPlan = primaryItinerary.days?.map((day: any) => ({
+        day: `${day.dayOfWeek} (${day.date})`,
+        activity: `${day.morning} ${day.afternoon} ${day.evening}`,
+        weather: ""
+      })) || [];
+      
+      // Convert alternative itinerary to our alternativePlan format
+      const alternativePlan = alternativeItinerary?.plan?.map((item: any) => ({
+        day: item.time || "Any time",
+        activity: item.activity,
+        weather: alternativeItinerary.weatherType || ""
+      })) || [];
+      
+      // Convert packing list to equipment format
+      const equipment = [
+        ...(packingList?.mustHaves?.map((item: string) => ({ name: item })) || []),
+        ...(packingList?.niceToHave?.map((item: string) => ({ name: item })) || [])
+      ];
+      
+      return {
+        destination,
+        dateRange,
+        mainPlan,
+        alternativePlan,
+        equipment
+      };
+    }
+    
+    // Fallback: return minimal structure with whatever is available
+    return {
+      destination: "Your Destination",
+      dateRange: "Your Travel Dates",
+      mainPlan: [],
+      alternativePlan: [],
+      equipment: []
+    };
   };
 
   useEffect(() => {
@@ -60,6 +121,13 @@ const TripResultPage = () => {
           // Parse AI response if available
           if (latestPlan.Response) {
             try {
+              // Store raw response for debugging
+              if (typeof latestPlan.Response === 'string') {
+                setRawResponse(latestPlan.Response);
+              } else {
+                setRawResponse(JSON.stringify(latestPlan.Response));
+              }
+              
               // Get response content
               let responseData;
               
@@ -76,14 +144,17 @@ const TripResultPage = () => {
               console.log("Successfully parsed trip data:", responseData);
               
               if (responseData) {
-                // Update trip data with the parsed response
+                // Process the complex response structure into a normalized format
+                const normalizedData = extractTripData(responseData);
+                
+                // Update trip data with the normalized response
                 setTripData({
-                  destination: responseData.destination || "Your Destination",
-                  dateRange: responseData.dateRange || "Your Travel Dates",
-                  mainPlan: Array.isArray(responseData.mainPlan) ? responseData.mainPlan : [],
-                  alternativePlan: Array.isArray(responseData.alternativePlan) ? responseData.alternativePlan : [],
-                  equipment: responseData.equipment 
-                    ? responseData.equipment.map((item: any) => ({
+                  destination: normalizedData.destination || "Your Destination",
+                  dateRange: normalizedData.dateRange || "Your Travel Dates",
+                  mainPlan: Array.isArray(normalizedData.mainPlan) ? normalizedData.mainPlan : [],
+                  alternativePlan: Array.isArray(normalizedData.alternativePlan) ? normalizedData.alternativePlan : [],
+                  equipment: normalizedData.equipment 
+                    ? normalizedData.equipment.map((item: any) => ({
                         name: item.name,
                         icon: getIconForEquipment(item.name)
                       })) 
@@ -123,6 +194,15 @@ const TripResultPage = () => {
             <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-600">
               <h3 className="font-medium mb-2">Error parsing trip data</h3>
               <p className="text-sm">{parsingError}</p>
+              
+              {/* Debug section to show raw response */}
+              {rawResponse && (
+                <div className="mt-4 p-4 bg-gray-50 rounded border border-gray-200 overflow-auto max-h-60">
+                  <h4 className="text-xs font-semibold text-gray-500 mb-2">Raw Response Data (Debug)</h4>
+                  <pre className="text-xs">{rawResponse}</pre>
+                </div>
+              )}
+              
               <div className="mt-4">
                 <ActionButtons />
               </div>
