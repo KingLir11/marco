@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Mountain, Sun, CloudMoonRain, RefreshCw } from "lucide-react";
+import { Mountain, Sun, CloudMoonRain, RefreshCw, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { TripPlanRecord } from "@/lib/types/tripTypes";
 import { toast } from "@/components/ui/sonner";
