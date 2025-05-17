@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,9 +38,9 @@ export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
         <h2 className="text-xl font-semibold mb-4">Loading Your Trip Plan</h2>
         
         {tripId ? (
-          <p className="text-sm text-gray-500 mb-6">Trip ID: {tripId}</p>
+          <p className="text-sm text-gray-500 mb-6">Loading trip ID: {tripId}</p>
         ) : (
-          <p className="text-sm text-gray-500 mb-6">Retrieving trip details... ({loadTime}s)</p>
+          <p className="text-sm text-gray-500 mb-6">Retrieving latest trip details... ({loadTime}s)</p>
         )}
         
         <div className="animate-pulse space-y-6 w-full">
@@ -60,15 +61,15 @@ export const TripLoader: React.FC<TripLoaderProps> = ({ tripId }) => {
         </div>
         
         <div className="mt-8 max-w-md w-full">
-          <Progress value={66} className="h-1 mb-2" />
-          <p className="text-center text-gray-600">Retrieving your personalized trip details...</p>
+          <Progress value={Math.min(loadTime * 5, 95)} className="h-1 mb-2" />
+          <p className="text-center text-gray-600">Retrieving your trip plan from database...</p>
         </div>
         
         {/* Add an option to view all trips if loading takes too long */}
         {loadTime > 10 && (
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Taking longer than expected? Your trip plan may already be ready.
+              Taking longer than expected? Check all your saved trips.
             </p>
             <Button 
               variant="outline" 

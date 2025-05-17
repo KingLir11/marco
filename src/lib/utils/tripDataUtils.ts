@@ -43,7 +43,7 @@ export const parseTripPlanData = (record: TripPlanRecord): ParsedTripPlan => {
       } else {
         return parsed;
       }
-    } else if (typeof record.trip_plan === 'object') {
+    } else if (typeof record.trip_plan === 'object' && record.trip_plan !== null) {
       // Handle if already parsed as object
       if (Array.isArray(record.trip_plan) && record.trip_plan.length > 0) {
         return record.trip_plan[0];
@@ -55,6 +55,8 @@ export const parseTripPlanData = (record: TripPlanRecord): ParsedTripPlan => {
     console.error("Error parsing trip plan data:", error);
   }
   
+  // Return empty object if parsing fails
+  console.warn("Returning empty object due to parsing failure");
   return {};
 };
 
@@ -62,9 +64,17 @@ export const parseTripPlanData = (record: TripPlanRecord): ParsedTripPlan => {
  * Format a date range string from start and end dates
  */
 export const formatDateRange = (startDate: string, endDate: string): string => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+  try {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error("Invalid date format");
+    }
+    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+  } catch (error) {
+    console.error("Error formatting date range:", error);
+    return "Date range unavailable";
+  }
 };
 
 /**
@@ -74,6 +84,7 @@ export const convertToTripData = (record: TripPlanRecord): TripData => {
   try {
     // Parse the trip plan data
     const tripPlanData = parseTripPlanData(record);
+    console.log("Parsed trip plan data:", tripPlanData);
     
     // Format date range
     const dateRange = formatDateRange(record.start_date, record.end_date);

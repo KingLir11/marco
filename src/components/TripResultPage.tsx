@@ -95,7 +95,7 @@ const TripResultPage = () => {
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link to="/my-trips">Save Trip</Link>
+              <Link to="/my-trips">Back to My Trips</Link>
             </Button>
             <Button asChild className="w-full sm:w-auto bg-primary hover:bg-primary/90">
               <Link to="/plan">Plan Another Trip</Link>

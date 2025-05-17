@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TripData } from '@/lib/types/tripTypes';
 import { mockTripData, convertToTripData, enhanceTripDataWithIcons } from '@/lib/utils/tripDataUtils';
 import React from 'react';
+import { toast } from "@/components/ui/sonner";
 
 export function useTripData(tripId?: string) {
   const [loading, setLoading] = useState(true);
@@ -29,21 +31,27 @@ export function useTripData(tripId?: string) {
         
         const { data, error } = await query;
         
-        if (error) throw error;
+        if (error) {
+          console.error("Supabase error:", error);
+          throw error;
+        }
         
         if (data && data.length > 0) {
           console.log("Retrieved trip data:", data[0]);
           const formattedData = convertToTripData(data[0]);
           console.log("Formatted trip data:", formattedData);
           setTripData(formattedData);
+          toast.success("Trip plan loaded successfully");
         } else {
           console.log("No trip data found, using mock data");
+          toast.info("Using sample trip data - no trips found in database");
           // Use mock data if no data found
           setTripData(mockTripData);
         }
       } catch (err) {
         console.error("Error fetching trip data:", err);
         setError(err instanceof Error ? err : new Error(String(err)));
+        toast.error("Error loading trip data");
         // Fallback to mock data
         setTripData(mockTripData);
       } finally {
