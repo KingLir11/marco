@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -13,13 +13,16 @@ import { ExtraRequestsField } from "@/components/trip-form/ExtraRequestsField";
 import { LoadingState } from "@/components/trip-form/LoadingState";
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Progress } from "@/components/ui/progress";
 
 // We keep using the external webhook to generate the trip plan
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
 const TripPlanForm = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [processingState, setProcessingState] = useState<'idle' | 'sending' | 'waiting'>('idle');
+  const [progress, setProgress] = useState(0);
   
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),
@@ -31,8 +34,75 @@ const TripPlanForm = () => {
     }
   });
 
+  // Effect to simulate progress bar movement while waiting for trip data
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (processingState === 'waiting') {
+      interval = setInterval(() => {
+        setProgress(prev => {
+          // Move progress gradually up to 95% (leave room for completion)
+          const nextProgress = prev + (95 - prev) * 0.05;
+          return Math.min(nextProgress, 95);
+        });
+      }, 500);
+    } else if (processingState === 'idle') {
+      setProgress(0);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [processingState]);
+
+  // Effect to check if trip has been created in Supabase
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    const tripDestination = form.getValues("destination");
+    
+    if (processingState === 'waiting' && tripDestination) {
+      interval = setInterval(async () => {
+        try {
+          // Check for recent trip with this destination
+          const { data, error } = await supabase
+            .from('trip_plans')
+            .select('*')
+            .eq('destination', tripDestination)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            // Found the trip! Complete progress and redirect
+            console.log("Trip found in database:", data[0]);
+            setProgress(100);
+            toast.success("Trip plan created successfully!");
+            
+            // Give a moment for the user to see 100% before redirecting
+            setTimeout(() => {
+              navigate("/result");
+            }, 500);
+            
+            setProcessingState('idle');
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error("Error checking for trip:", err);
+        }
+      }, 2000); // Check every 2 seconds
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [processingState, navigate, form]);
+
   async function onSubmit(data: TripFormData) {
     setLoading(true);
+    setProcessingState('sending');
+    setProgress(10); // Start progress at 10%
+    
     try {
       // Format dates to ISO strings for the API
       const formattedData = {
@@ -57,31 +127,19 @@ const TripPlanForm = () => {
         throw new Error("Failed to send trip data");
       }
 
-      // Get the trip plan data from the webhook response
-      const tripPlanData = await response.json();
+      // Change state to waiting - don't try to parse response as JSON
+      setProcessingState('waiting');
+      setProgress(30); // Update progress after successful webhook call
       
-      // Store the trip data in Supabase
-      const { error } = await supabase
-        .from('trip_plans')
-        .insert({
-          destination: data.destination,
-          start_date: data.startDate.toISOString().split('T')[0],
-          end_date: data.endDate.toISOString().split('T')[0],
-          trip_plan: JSON.stringify(tripPlanData),
-          // user_id will be automatically set by RLS if user is authenticated
-        });
-
-      if (error) {
-        console.error("Error saving trip to Supabase:", error);
-        throw new Error("Failed to save trip data");
-      }
+      toast.success("Trip request sent! Creating your personalized plan...");
       
-      toast.success("Trip details submitted successfully!");
-      navigate("/result");
+      // Don't navigate immediately - wait for the trip to appear in the database
+      // The useEffect above will handle the navigation once the trip is found
+      
     } catch (error) {
       console.error("Error submitting trip data:", error);
       toast.error("Failed to submit trip data. Please try again.");
-    } finally {
+      setProcessingState('idle');
       setLoading(false);
     }
   }
@@ -91,7 +149,19 @@ const TripPlanForm = () => {
       <div className="w-full max-w-2xl bg-white/95 backdrop-blur-sm rounded-lg shadow-xl p-6 sm:p-8 relative z-10 py-[36px] my-[32px]">
         <h1 className="text-3xl font-bold font-playfair text-center mb-8">Plan Your Trip</h1>
         
-        {loading ? <LoadingState /> : (
+        {loading ? (
+          <div className="space-y-8">
+            <LoadingState />
+            
+            <div className="space-y-2">
+              <p className="text-center text-gray-700">
+                {processingState === 'sending' ? 'Sending your request...' : 'Creating your perfect trip plan...'}
+              </p>
+              <Progress value={progress} className="h-2" />
+              <p className="text-center text-sm text-gray-500">This may take up to a minute</p>
+            </div>
+          </div>
+        ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <DestinationField control={form.control} />
