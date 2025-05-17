@@ -5,7 +5,6 @@ import { toast } from "@/components/ui/sonner";
 import { TripFormData } from "@/lib/schemas/tripPlanSchema";
 import { useRealtimeImages, ImagePlanData } from "./use-realtime-images";
 import { generateSupabaseId } from "@/lib/utils";
-import { useTripPlanStore } from "@/stores/tripPlanStore";
 
 const WEBHOOK_URL = "https://hook.eu2.make.com/5nzrkzdmuu16mbpkmjryc92n13ysdpn3";
 
@@ -15,7 +14,6 @@ export function useTripFormSubmission() {
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const navigationTimerRef = useRef<number | null>(null);
   const longWaitTimerRef = useRef<number | null>(null);
-  const { setCurrentPlan } = useTripPlanStore();
 
   // Handle new images from Supabase Realtime
   const handleNewImage = (data: ImagePlanData) => {
@@ -133,28 +131,6 @@ export function useTripFormSubmission() {
       
       if (!response.ok) {
         throw new Error(`Failed to send trip data: ${response.status} ${response.statusText}`);
-      }
-
-      // Try to parse the webhook response directly
-      try {
-        const webhookResponseData = await response.json();
-        console.log("Webhook response data:", webhookResponseData);
-        
-        // Store the trip plan data from the webhook
-        if (webhookResponseData && typeof webhookResponseData === 'object') {
-          // Transform the webhook data to our TripPlan format if needed
-          const tripPlan = {
-            destination: data.destination,
-            startDate: formattedData.startDate,
-            endDate: formattedData.endDate,
-            // Add other fields from webhookResponseData as needed
-            ...webhookResponseData
-          };
-          
-          setCurrentPlan(tripPlan);
-        }
-      } catch (parseError) {
-        console.log("Could not parse webhook response as JSON. Will wait for Supabase update.");
       }
       
       console.log("Webhook response status:", response.status);
