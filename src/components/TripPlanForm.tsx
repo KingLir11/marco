@@ -23,6 +23,7 @@ const TripPlanForm = () => {
   const [loading, setLoading] = useState(false);
   const [processingState, setProcessingState] = useState<'idle' | 'sending' | 'waiting'>('idle');
   const [progress, setProgress] = useState(0);
+  const [latestTripId, setLatestTripId] = useState<string | null>(null);
   
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripFormSchema),
@@ -75,17 +76,21 @@ const TripPlanForm = () => {
           
           if (data && data.length > 0) {
             // Found the trip! Complete progress and redirect
+            const tripId = data[0].id;
             console.log("Trip found in database:", data[0]);
+            setLatestTripId(tripId);
             setProgress(100);
             toast.success("Trip plan created successfully!");
             
             // Give a moment for the user to see 100% before redirecting
             setTimeout(() => {
-              navigate("/result");
+              // Use the specific trip ID when navigating to the result page
+              navigate(`/result/${tripId}`);
             }, 500);
             
             setProcessingState('idle');
             setLoading(false);
+            clearInterval(interval);
           }
         } catch (err) {
           console.error("Error checking for trip:", err);

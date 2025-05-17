@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { TripData, TripPlanRecord, ParsedTripPlan } from '@/lib/types/tripTypes';
@@ -108,10 +107,13 @@ export function useTripData(tripId?: string) {
         let query = supabase.from('trip_plans').select('*');
         
         // If a specific tripId is provided, fetch just that trip
-        if (tripId) {
+        // Make sure tripId isn't the route parameter placeholder
+        if (tripId && tripId !== ':tripId') {
+          console.log("Fetching specific trip with ID:", tripId);
           query = query.eq('id', tripId);
         } else {
           // Otherwise get the most recent trip
+          console.log("Fetching most recent trip");
           query = query.order('created_at', { ascending: false }).limit(1);
         }
         
@@ -125,6 +127,7 @@ export function useTripData(tripId?: string) {
           console.log("Formatted trip data:", formattedData);
           setTripData(formattedData);
         } else {
+          console.log("No trip data found, using mock data");
           // Use mock data if no data found
           setTripData(mockTripData);
         }
